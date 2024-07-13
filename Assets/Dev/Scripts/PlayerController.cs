@@ -25,8 +25,8 @@ public class PlayerController : MonoBehaviour
     void Update()
     {
         // Get input for movement
-        float moveX = Input.GetAxis("Horizontal");
-        float moveZ = Input.GetAxis("Vertical");
+        float moveX = Input.GetAxisRaw("Horizontal");
+        float moveZ = Input.GetAxisRaw("Vertical");
 
         if (isRolling)
         {

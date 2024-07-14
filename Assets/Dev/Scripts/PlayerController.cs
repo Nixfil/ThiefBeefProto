@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Mathematics;
 using UnityEngine;
 
 public class PlayerController : MonoBehaviour
@@ -9,7 +10,8 @@ public class PlayerController : MonoBehaviour
     public float rollDuration = 1.0f; // Total duration of the roll
     public float rollAcceleration = 10.0f; // Acceleration during roll
     public float rollDeceleration = 10.0f; // Deceleration after roll
-
+    public float rotationSpeed;
+    
     private Rigidbody rb;
     private bool isRolling;
     private float rollTime;
@@ -27,7 +29,7 @@ public class PlayerController : MonoBehaviour
         // Get input for movement
         float moveX = Input.GetAxisRaw("Horizontal");
         float moveZ = Input.GetAxisRaw("Vertical");
-
+        
         if (isRolling)
         {
             Roll();
@@ -40,6 +42,12 @@ public class PlayerController : MonoBehaviour
             // Move the character
             rb.velocity = move * speed;
 
+            if (move != Vector3.zero)
+            {
+                Quaternion toRotation = Quaternion.LookRotation(move, Vector3.up);
+                transform.rotation =
+                    Quaternion.RotateTowards(transform.rotation, toRotation, rotationSpeed * Time.deltaTime);
+            }
             // Check for roll input (space bar)
             if (Input.GetKeyDown(KeyCode.Space) && move != Vector3.zero)
             {

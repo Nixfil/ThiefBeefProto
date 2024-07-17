@@ -5,15 +5,23 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
+    public enum PlayerState
+    {
+        Idle,
+        Running,
+        Rolling,
+    }
+
     public float speed = 6.0f; // Speed of the character
     public float rollSpeed = 12.0f; // Maximum speed of the roll
     public float rollDuration = 1.0f; // Total duration of the roll
     public float rollAcceleration = 10.0f; // Acceleration during roll
     public float rollDeceleration = 10.0f; // Deceleration after roll
     public float rotationSpeed;
-    
+
+    [SerializeField] private PlayerState currentState;
+
     private Rigidbody rb;
-    private bool isRolling;
     private float rollTime;
     private float currentRollSpeed;
     private Vector3 rollDirection;
@@ -22,6 +30,7 @@ public class PlayerController : MonoBehaviour
     {
         rb = GetComponent<Rigidbody>();
         rb.useGravity = false; // Disable gravity
+        currentState = PlayerState.Idle; // Start in Idle state
     }
 
     void Update()
@@ -29,36 +38,57 @@ public class PlayerController : MonoBehaviour
         // Get input for movement
         float moveX = Input.GetAxisRaw("Horizontal");
         float moveZ = Input.GetAxisRaw("Vertical");
-        
-        if (isRolling)
+        Vector3 move = new Vector3(moveX, 0, moveZ).normalized;
+
+        switch (currentState)
         {
-            Roll();
+            case PlayerState.Idle:
+                if (move != Vector3.zero)
+                {
+                    ChangeState(PlayerState.Running);
+                }
+                else
+                {
+                    rb.velocity = Vector3.zero;
+                }
+                break;
+
+            case PlayerState.Running:
+                if (move == Vector3.zero)
+                {
+                    ChangeState(PlayerState.Idle);
+                }
+                else if (Input.GetKeyDown(KeyCode.Space))
+                {
+                    StartRoll(move);
+                }
+                else
+                {
+                    MoveCharacter(move);
+                }
+                break;
+
+            case PlayerState.Rolling:
+                Roll();
+                break;
         }
-        else
+    }
+
+    private void MoveCharacter(Vector3 moveDirection)
+    {
+        rb.velocity = moveDirection * speed;
+
+        // Rotate character to face movement direction
+        if (moveDirection != Vector3.zero)
         {
-            // Calculate the movement direction
-            Vector3 move = new Vector3(moveX, 0, moveZ).normalized;
-
-            // Move the character
-            rb.velocity = move * speed;
-
-            if (move != Vector3.zero)
-            {
-                Quaternion toRotation = Quaternion.LookRotation(move, Vector3.up);
-                transform.rotation =
-                    Quaternion.RotateTowards(transform.rotation, toRotation, rotationSpeed * Time.deltaTime);
-            }
-            // Check for roll input (space bar)
-            if (Input.GetKeyDown(KeyCode.Space) && move != Vector3.zero)
-            {
-                StartRoll(move);
-            }
+            Quaternion toRotation = Quaternion.LookRotation(moveDirection, Vector3.up);
+            rb.rotation = Quaternion.RotateTowards(rb.rotation, toRotation, rotationSpeed * Time.deltaTime);
         }
     }
 
     private void StartRoll(Vector3 moveDirection)
     {
-        isRolling = true;
+        ChangeState(PlayerState.Rolling);
         rollTime = 0f;
         currentRollSpeed = rb.velocity.magnitude; // Start the roll with the current speed
         rollDirection = moveDirection;
@@ -88,7 +118,12 @@ public class PlayerController : MonoBehaviour
         // End the roll
         if (rollTime >= rollDuration)
         {
-            isRolling = false;
+            ChangeState(PlayerState.Idle);
         }
+    }
+
+    private void ChangeState(PlayerState newState)
+    {
+        currentState = newState;
     }
 }

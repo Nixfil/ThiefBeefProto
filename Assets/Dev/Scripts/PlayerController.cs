@@ -20,17 +20,20 @@ public class PlayerController : MonoBehaviour
     public float rotationSpeed;
 
     [SerializeField] private PlayerState currentState;
+    [SerializeField] private CapsuleCollider capsuleCollider;
 
     private Rigidbody rb;
     private float rollTime;
     private float currentRollSpeed;
     private Vector3 rollDirection;
+    private float colliderHeightOG;
 
     void Start()
     {
         rb = GetComponent<Rigidbody>();
         rb.useGravity = false; // Disable gravity
         currentState = PlayerState.Idle; // Start in Idle state
+        colliderHeightOG = capsuleCollider.height;
     }
 
     void Update()
@@ -69,6 +72,7 @@ public class PlayerController : MonoBehaviour
                 break;
 
             case PlayerState.Rolling:
+
                 Roll();
                 break;
         }
@@ -96,6 +100,7 @@ public class PlayerController : MonoBehaviour
 
     private void Roll()
     {
+        capsuleCollider.height *= 0.3f;
         rollTime += Time.deltaTime;
 
         // Gradually increase the speed
@@ -118,6 +123,7 @@ public class PlayerController : MonoBehaviour
         // End the roll
         if (rollTime >= rollDuration)
         {
+            capsuleCollider.height = colliderHeightOG;
             ChangeState(PlayerState.Idle);
         }
     }

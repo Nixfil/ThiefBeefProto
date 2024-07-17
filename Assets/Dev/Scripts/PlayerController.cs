@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 public class PlayerController : MonoBehaviour
 {
@@ -19,6 +20,7 @@ public class PlayerController : MonoBehaviour
     public float rotationSpeed;
     public LayerMask mask;
     public bool roofed;
+    public Vector3 move;
 
     [SerializeField] private PlayerState currentState;
     [SerializeField] private CapsuleCollider capsuleCollider;
@@ -29,6 +31,7 @@ public class PlayerController : MonoBehaviour
     private float rollSpeed;
     private float currentRollSpeed;
     private Vector3 rollDirection;
+    private GameObject lastHitTable = null;
 
 
     void Start()
@@ -43,7 +46,7 @@ public class PlayerController : MonoBehaviour
         // Get input for movement
         float moveX = Input.GetAxisRaw("Horizontal");
         float moveZ = Input.GetAxisRaw("Vertical");
-        Vector3 move = new Vector3(moveX, 0, moveZ).normalized;
+        move = new Vector3(moveX, 0, moveZ).normalized;
 
         switch (currentState)
         {
@@ -60,7 +63,16 @@ public class PlayerController : MonoBehaviour
                 {
                     StartRoll(transform.forward);
                 }
-                break;
+
+                if (Physics.Raycast(transform.position, transform.forward, out RaycastHit standingHitInfo, desiredRollDistance - 1f))
+                {
+                    if (standingHitInfo.collider.gameObject.layer == 7)
+                    {
+                        standingHitInfo.collider.gameObject.GetComponentInParent<Outline>().enabled = true;
+                        lastHitTable = standingHitInfo.collider.gameObject.transform.parent.gameObject;
+                    }
+                }
+                    break;
 
             case PlayerState.Running:
                 if (move == Vector3.zero)
@@ -75,6 +87,24 @@ public class PlayerController : MonoBehaviour
                 {
                     MoveCharacter(move);
                 }
+
+                if (Physics.Raycast(transform.position, move, out RaycastHit hitInfo, desiredRollDistance - 1f))
+                {
+                    if (hitInfo.collider.gameObject.layer == 7)
+                    {
+                        hitInfo.collider.gameObject.GetComponentInParent<Outline>().enabled = true;
+                        lastHitTable = hitInfo.collider.gameObject.transform.parent.gameObject;
+                    }
+                    else if (lastHitTable != null)
+                    {
+                        lastHitTable.GetComponent<Outline>().enabled = false;
+                    }
+                }
+                else if (lastHitTable != null)
+                {
+                    lastHitTable.GetComponent<Outline>().enabled = false;
+                }
+
                 break;
 
             case PlayerState.Rolling:
@@ -82,7 +112,9 @@ public class PlayerController : MonoBehaviour
                 Roll();
                 break;
         }
-        Debug.Log(currentRollSpeed);
+
+
+
     }
 
     private void MoveCharacter(Vector3 moveDirection)
@@ -128,7 +160,7 @@ public class PlayerController : MonoBehaviour
             capsuleCollider.height = 2;
             ChangeState(PlayerState.Idle);
         }
-        else if (currentRollSpeed < 2) { currentRollSpeed = 10; }
+        else if (currentRollSpeed < 10) { currentRollSpeed = 18; }
     }
 
 

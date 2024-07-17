@@ -11,29 +11,31 @@ public class PlayerController : MonoBehaviour
         Running,
         Rolling,
     }
+    public DetectorScript detectorScript;
 
-    public float speed = 6.0f; // Speed of the character
-    public float rollSpeed = 12.0f; // Maximum speed of the roll
-    public float rollDuration = 1.0f; // Total duration of the roll
-    public float rollAcceleration = 10.0f; // Acceleration during roll
-    public float rollDeceleration = 10.0f; // Deceleration after roll
+    public float speed; // Speed of the character
+    public float rollDuration; // Total duration of the roll
+    public float desiredRollDistance;
     public float rotationSpeed;
+    public LayerMask mask;
+    public bool roofed;
 
     [SerializeField] private PlayerState currentState;
     [SerializeField] private CapsuleCollider capsuleCollider;
 
     private Rigidbody rb;
     private float rollTime;
+    private float rollAcceleration;
+    private float rollSpeed;
     private float currentRollSpeed;
     private Vector3 rollDirection;
-    private float colliderHeightOG;
+
 
     void Start()
     {
         rb = GetComponent<Rigidbody>();
         rb.useGravity = false; // Disable gravity
         currentState = PlayerState.Idle; // Start in Idle state
-        colliderHeightOG = capsuleCollider.height;
     }
 
     void Update()
@@ -53,6 +55,10 @@ public class PlayerController : MonoBehaviour
                 else
                 {
                     rb.velocity = Vector3.zero;
+                }
+                if (Input.GetKeyDown(KeyCode.Space))
+                {
+                    StartRoll(transform.forward);
                 }
                 break;
 
@@ -76,6 +82,7 @@ public class PlayerController : MonoBehaviour
                 Roll();
                 break;
         }
+        Debug.Log(currentRollSpeed);
     }
 
     private void MoveCharacter(Vector3 moveDirection)
@@ -94,39 +101,36 @@ public class PlayerController : MonoBehaviour
     {
         ChangeState(PlayerState.Rolling);
         rollTime = 0f;
-        currentRollSpeed = rb.velocity.magnitude; // Start the roll with the current speed
-        rollDirection = moveDirection;
+        rollDirection = moveDirection.normalized;
+
+        // Calculate the required roll speed to cover the desired distance
+        rollSpeed = desiredRollDistance / rollDuration; // Speed needed to cover the desired distance
+
+        currentRollSpeed = rollSpeed; // Start the roll with the calculated speed
+        rollAcceleration = rollSpeed * 2;
     }
 
     private void Roll()
     {
-        capsuleCollider.height *= 0.3f;
+        capsuleCollider.height = 0.3f * capsuleCollider.height;
         rollTime += Time.deltaTime;
 
-        // Gradually increase the speed
-        if (rollTime <= rollDuration / 2)
-        {
-            currentRollSpeed += rollAcceleration * Time.deltaTime;
-        }
-        // Gradually decrease the speed
-        else if (rollTime <= rollDuration)
-        {
-            currentRollSpeed -= rollDeceleration * Time.deltaTime;
-        }
-
-        // Cap the speed at rollSpeed
+        // Adjust speed
+        currentRollSpeed += (rollTime <= rollDuration / 2 ? rollAcceleration : -rollAcceleration) * Time.deltaTime;
         currentRollSpeed = Mathf.Clamp(currentRollSpeed, 0, rollSpeed);
 
         // Move the character in the roll direction
         rb.velocity = rollDirection * currentRollSpeed;
 
         // End the roll
-        if (rollTime >= rollDuration)
+        if (rollTime >= rollDuration && detectorScript.ObjectsAboveMyHead.Count == 0)
         {
-            capsuleCollider.height = colliderHeightOG;
+            capsuleCollider.height = 2;
             ChangeState(PlayerState.Idle);
         }
+        else if (currentRollSpeed < 2) { currentRollSpeed = 10; }
     }
+
 
     private void ChangeState(PlayerState newState)
     {

@@ -13,6 +13,7 @@ public class PlayerController : MonoBehaviour
         Rolling,
     }
     public DetectorScript detectorScript;
+    public ThrowController throwController;
 
     public float speed; // Speed of the character
     public float rollDuration; // Total duration of the roll
@@ -21,6 +22,7 @@ public class PlayerController : MonoBehaviour
     public LayerMask mask;
     public bool roofed;
     public Vector3 move;
+
 
     [SerializeField] private PlayerState currentState;
     [SerializeField] private CapsuleCollider capsuleCollider;
@@ -72,7 +74,27 @@ public class PlayerController : MonoBehaviour
                         lastHitTable = standingHitInfo.collider.gameObject.transform.parent.gameObject;
                     }
                 }
-                    break;
+                Vector3 start = transform.position;
+                Vector3 rawMousePos = GetMouseWorldPosition();
+
+                // Clamp to max throw range
+                Vector3 clampedTarget = GetClampedTarget(start, rawMousePos, throwController.trajectoryData.maxRange);
+
+                if (Input.GetMouseButton(0))
+                {
+                    throwController.PreviewThrow(start, clampedTarget);
+                }
+
+                if (Input.GetMouseButtonUp(0))
+                {
+                    throwController.ExecuteThrow(start, clampedTarget);
+                }
+
+                if (Input.GetMouseButtonDown(1))
+                {
+                    throwController.CancelPreview();
+                }
+                break;
 
             case PlayerState.Running:
                 if (move == Vector3.zero)
@@ -168,4 +190,25 @@ public class PlayerController : MonoBehaviour
     {
         currentState = newState;
     }
+    private Vector3 GetMouseWorldPosition()
+    {
+        Plane groundPlane = new Plane(Vector3.up, Vector3.zero);
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+
+        if (groundPlane.Raycast(ray, out float enter))
+            return ray.GetPoint(enter);
+
+        return Vector3.zero;
+    }
+    private Vector3 GetClampedTarget(Vector3 start, Vector3 target, float maxRange)
+    {
+        Vector3 direction = target - start;
+        float distance = direction.magnitude;
+
+        if (distance > maxRange)
+            return start + direction.normalized * maxRange;
+        else
+            return target;
+    }
+
 }

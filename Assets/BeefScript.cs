@@ -8,7 +8,11 @@ public class BeefScript : MonoBehaviour
     public float graceDistance = 3f;
     public float upwardForce = 2f;
     public Rigidbody rb;
-    
+
+    private void Start()
+    {
+        rb = GetComponent<Rigidbody>();
+    }
     void Update()
     {
         // Rotate the object every frame

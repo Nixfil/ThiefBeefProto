@@ -7,14 +7,19 @@ public class ThrowController : MonoBehaviour
     public Transform spawnPoint;
     public LineRenderer lineRenderer;
     public LayerMask groundMask;
+    public LayerMask throwMask;
+    public GameObject ghostIndicatorPrefab;
+
 
     [Header("Throw Settings")]
+    public float AimOffset;
     public float gravity = 9.81f;
     public int trajectorySteps = 30;
     public float minThrowAngle = 25f;
     public float maxThrowAngle = 60f;
     public AnimationCurve angleByDistance; // Define this in the inspector!
 
+    private GameObject ghostInstance;
     private Camera cam;
     private bool isAiming;
 
@@ -101,13 +106,52 @@ public class ThrowController : MonoBehaviour
     void DrawTrajectory(Vector3 startPos, Vector3 velocity)
     {
         lineRenderer.enabled = true;
-        for (int i = 0; i < trajectorySteps; i++)
+        Vector3 prevPoint = startPos;
+        lineRenderer.SetPosition(0, prevPoint);
+
+        Vector3 hitPoint = prevPoint;
+        bool hitSomething = false;
+
+        for (int i = 1; i < trajectorySteps; i++)
         {
             float t = i * 0.1f;
             Vector3 point = startPos + velocity * t + 0.5f * Physics.gravity * t * t;
+
+            if (Physics.Raycast(prevPoint, point - prevPoint, out RaycastHit hit, (point - prevPoint).magnitude, throwMask))
+            {
+                hitPoint = hit.point;
+                lineRenderer.SetPosition(i, hitPoint);
+                hitSomething = true;
+
+                for (int j = i + 1; j < trajectorySteps; j++)
+                {
+                    lineRenderer.SetPosition(j, hitPoint);
+                }
+
+                break;
+            }
+
             lineRenderer.SetPosition(i, point);
+            prevPoint = point;
+            hitPoint = point;
+        }
+
+        if (ghostInstance == null && ghostIndicatorPrefab != null)
+        {
+            ghostInstance = Instantiate(ghostIndicatorPrefab);
+        }
+
+        if (ghostInstance != null)
+        {
+            ghostInstance.SetActive(true);
+            var higherHitPoint = hitPoint;
+            higherHitPoint.y += 0.3f;
+            Vector3 closerPoint = Vector3.MoveTowards(higherHitPoint, startPos, AimOffset);
+            ghostInstance.transform.position = closerPoint;
         }
     }
+
+
 
     void ThrowProjectile(Vector3 velocity)
     {

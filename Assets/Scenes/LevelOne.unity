@@ -134,7 +134,7 @@ GameObject:
   - component: {fileID: 12344370}
   - component: {fileID: 12344369}
   - component: {fileID: 12344368}
-  m_Layer: 6
+  m_Layer: 12
   m_Name: Cube
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -239,7 +239,7 @@ GameObject:
   - component: {fileID: 74205018}
   - component: {fileID: 74205017}
   - component: {fileID: 74205016}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: Ground
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -492,7 +492,7 @@ GameObject:
   m_Component:
   - component: {fileID: 139146603}
   - component: {fileID: 139146604}
-  m_Layer: 7
+  m_Layer: 12
   m_Name: ProxyCollider
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -661,7 +661,7 @@ GameObject:
   m_Component:
   - component: {fileID: 243822565}
   - component: {fileID: 243822564}
-  m_Layer: 0
+  m_Layer: 12
   m_Name: Table (3)
   m_TagString: Table
   m_Icon: {fileID: 0}
@@ -717,7 +717,7 @@ GameObject:
   - component: {fileID: 321693757}
   - component: {fileID: 321693756}
   - component: {fileID: 321693755}
-  m_Layer: 0
+  m_Layer: 12
   m_Name: Cube (3)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -820,7 +820,7 @@ GameObject:
   m_Component:
   - component: {fileID: 328638847}
   - component: {fileID: 328638848}
-  m_Layer: 7
+  m_Layer: 12
   m_Name: ProxyCollider
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1047,7 +1047,7 @@ GameObject:
   - component: {fileID: 365686763}
   - component: {fileID: 365686762}
   - component: {fileID: 365686761}
-  m_Layer: 6
+  m_Layer: 12
   m_Name: Cube
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1270,7 +1270,7 @@ GameObject:
   - component: {fileID: 432388248}
   - component: {fileID: 432388247}
   - component: {fileID: 432388246}
-  m_Layer: 0
+  m_Layer: 12
   m_Name: Cube (3)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1375,7 +1375,7 @@ GameObject:
   - component: {fileID: 451255098}
   - component: {fileID: 451255097}
   - component: {fileID: 451255096}
-  m_Layer: 6
+  m_Layer: 12
   m_Name: Cube
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1480,7 +1480,7 @@ GameObject:
   - component: {fileID: 610211233}
   - component: {fileID: 610211232}
   - component: {fileID: 610211231}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Cube
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1583,7 +1583,7 @@ GameObject:
   m_Component:
   - component: {fileID: 625871313}
   - component: {fileID: 625871314}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: ThrowController
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1619,39 +1619,41 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   projectilePrefab: {fileID: 1470094372982362253, guid: d7b46f7320f77764cbba06fe28ba3974,
     type: 3}
-  previewer: {fileID: 784195698}
-  minRange: 1
-  maxRange: 10
-  throwDuration: 1
-  throwArc:
+  spawnPoint: {fileID: 688451932}
+  lineRenderer: {fileID: 784195699}
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 1024
+  throwMask:
+    serializedVersion: 2
+    m_Bits: 7168
+  ghostIndicatorPrefab: {fileID: 8809093548387162071, guid: bb5e1b87359c58941b10ee24c96dfd70,
+    type: 3}
+  AimOffset: 0.5
+  gravity: 9.81
+  trajectorySteps: 90
+  minThrowAngle: 25
+  maxThrowAngle: 60
+  angleByDistance:
     serializedVersion: 2
     m_Curve:
     - serializedVersion: 3
-      time: -0.0009398487
-      value: 0.004712607
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 136
+      time: 0.0009398487
+      value: 0.0028275496
+      inSlope: 0.6444044
+      outSlope: 0.6444044
+      tangentMode: 0
       weightedMode: 0
       inWeight: 0.33333334
-      outWeight: 0.33333334
+      outWeight: 0.060974304
     - serializedVersion: 3
-      time: 0.5012708
-      value: 1.0105339
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 136
+      time: 0.9981362
+      value: 0.50115657
+      inSlope: 0.78946674
+      outSlope: 0.78946674
+      tangentMode: 0
       weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    - serializedVersion: 3
-      time: 1.0009398
-      value: 0.008482577
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 136
-      weightedMode: 0
-      inWeight: 0.33333334
+      inWeight: 0.066729255
       outWeight: 0.33333334
     m_PreInfinity: 2
     m_PostInfinity: 2
@@ -1668,7 +1670,7 @@ GameObject:
   - component: {fileID: 642062257}
   - component: {fileID: 642062256}
   - component: {fileID: 642062255}
-  m_Layer: 0
+  m_Layer: 12
   m_Name: Cube (3)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1773,7 +1775,7 @@ GameObject:
   - component: {fileID: 646419669}
   - component: {fileID: 646419668}
   - component: {fileID: 646419667}
-  m_Layer: 0
+  m_Layer: 12
   m_Name: Cube (2)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1878,7 +1880,7 @@ GameObject:
   - component: {fileID: 688451931}
   - component: {fileID: 688451930}
   - component: {fileID: 688451929}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Capsule
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2090,7 +2092,7 @@ GameObject:
   - component: {fileID: 784195700}
   - component: {fileID: 784195699}
   - component: {fileID: 784195698}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: TrajectoryAimer
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2109,41 +2111,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 37133939fc6487240bee9de42a257ed6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  lineRenderer: {fileID: 0}
   resolution: 30
-  previewDuration: 1
-  arcCurve:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: -0.0009398487
-      value: 0.004712607
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 136
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    - serializedVersion: 3
-      time: 0.5012708
-      value: 1.0105339
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 136
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    - serializedVersion: 3
-      time: 1.0009398
-      value: 0.008482577
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 136
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
 --- !u!120 &784195699
 LineRenderer:
   serializedVersion: 2
@@ -2165,7 +2134,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 9f4fd66af617a374992b20c5406126e1, type: 2}
+  - {fileID: 2100000, guid: bd0e49a7aa90877489ab79b44604c6ef, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -2191,7 +2160,7 @@ LineRenderer:
   - {x: 0, y: 0, z: 1}
   m_Parameters:
     serializedVersion: 3
-    widthMultiplier: 0.5
+    widthMultiplier: 0.3
     widthCurve:
       serializedVersion: 2
       m_Curve:
@@ -2322,7 +2291,7 @@ GameObject:
   m_Component:
   - component: {fileID: 988679270}
   - component: {fileID: 988679271}
-  m_Layer: 0
+  m_Layer: 12
   m_Name: Table
   m_TagString: Table
   m_Icon: {fileID: 0}
@@ -2376,7 +2345,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1014902257}
   - component: {fileID: 1014902256}
-  m_Layer: 0
+  m_Layer: 12
   m_Name: Table (1)
   m_TagString: Table
   m_Icon: {fileID: 0}
@@ -2431,7 +2400,7 @@ GameObject:
   - component: {fileID: 1016533686}
   - component: {fileID: 1016533684}
   - component: {fileID: 1016533687}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Player
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2521,7 +2490,7 @@ GameObject:
   - component: {fileID: 1148871275}
   - component: {fileID: 1148871274}
   - component: {fileID: 1148871273}
-  m_Layer: 0
+  m_Layer: 12
   m_Name: Cube (2)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2740,7 +2709,7 @@ GameObject:
   - component: {fileID: 1210153701}
   - component: {fileID: 1210153700}
   - component: {fileID: 1210153699}
-  m_Layer: 0
+  m_Layer: 12
   m_Name: Cube (2)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2843,7 +2812,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1238499415}
   - component: {fileID: 1238499416}
-  m_Layer: 7
+  m_Layer: 12
   m_Name: ProxyCollider
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2898,7 +2867,7 @@ GameObject:
   - component: {fileID: 1246154338}
   - component: {fileID: 1246154337}
   - component: {fileID: 1246154336}
-  m_Layer: 0
+  m_Layer: 12
   m_Name: Cube (2)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3003,7 +2972,7 @@ GameObject:
   - component: {fileID: 1385297108}
   - component: {fileID: 1385297107}
   - component: {fileID: 1385297106}
-  m_Layer: 0
+  m_Layer: 12
   m_Name: Cube (3)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3214,7 +3183,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1477945829}
   - component: {fileID: 1477945830}
-  m_Layer: 7
+  m_Layer: 12
   m_Name: ProxyCollider
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3269,7 +3238,7 @@ GameObject:
   - component: {fileID: 1579952691}
   - component: {fileID: 1579952690}
   - component: {fileID: 1579952689}
-  m_Layer: 6
+  m_Layer: 12
   m_Name: Cube
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3372,7 +3341,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1695395415}
   - component: {fileID: 1695395414}
-  m_Layer: 0
+  m_Layer: 12
   m_Name: Table (2)
   m_TagString: Table
   m_Icon: {fileID: 0}
@@ -3427,7 +3396,7 @@ GameObject:
   - component: {fileID: 1742195665}
   - component: {fileID: 1742195667}
   - component: {fileID: 1742195666}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Detector
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3550,125 +3519,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1209932455}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1901619569
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1901619574}
-  - component: {fileID: 1901619573}
-  - component: {fileID: 1901619572}
-  - component: {fileID: 1901619571}
-  - component: {fileID: 1901619570}
-  m_Layer: 0
-  m_Name: Cube
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1901619570
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1901619569}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b2fa35ebe985ab64ca0b91958b805819, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  rotationSpeed: {x: 0, y: 270, z: 0}
---- !u!65 &1901619571
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1901619569}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
---- !u!23 &1901619572
-MeshRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1901619569}
-  m_Enabled: 1
-  m_CastShadows: 1
-  m_ReceiveShadows: 1
-  m_DynamicOccludee: 1
-  m_StaticShadowCaster: 0
-  m_MotionVectors: 1
-  m_LightProbeUsage: 1
-  m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
-  m_RayTraceProcedural: 0
-  m_RenderingLayerMask: 1
-  m_RendererPriority: 0
-  m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
-  m_StaticBatchInfo:
-    firstSubMesh: 0
-    subMeshCount: 0
-  m_StaticBatchRoot: {fileID: 0}
-  m_ProbeAnchor: {fileID: 0}
-  m_LightProbeVolumeOverride: {fileID: 0}
-  m_ScaleInLightmap: 1
-  m_ReceiveGI: 1
-  m_PreserveUVs: 0
-  m_IgnoreNormalsForChartDetection: 0
-  m_ImportantGI: 0
-  m_StitchLightmapSeams: 1
-  m_SelectedEditorRenderState: 3
-  m_MinimumChartSize: 4
-  m_AutoUVMaxDistance: 0.5
-  m_AutoUVMaxAngle: 89
-  m_LightmapParameters: {fileID: 0}
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 0
-  m_AdditionalVertexStreams: {fileID: 0}
---- !u!33 &1901619573
-MeshFilter:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1901619569}
-  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
---- !u!4 &1901619574
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1901619569}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 4.834, y: 2.107, z: -8.483}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -3681,5 +3531,4 @@ SceneRoots:
   - {fileID: 1014902257}
   - {fileID: 1695395415}
   - {fileID: 243822565}
-  - {fileID: 1901619574}
   - {fileID: 92518903}

@@ -14,11 +14,11 @@ TagManager:
   - UI
   - Terrain
   - RaycastProxy
-  - 
-  - 
-  - 
-  - 
-  - 
+  - Player
+  - Throwables
+  - Ground
+  - Walls
+  - Tables
   - 
   - 
   - 

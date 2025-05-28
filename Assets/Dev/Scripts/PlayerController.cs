@@ -34,6 +34,7 @@ public class PlayerController : MonoBehaviour
     private float currentRollSpeed;
     private Vector3 rollDirection;
     private GameObject lastHitTable = null;
+    private Vector3 aimDirection;
 
 
     void Start()
@@ -74,27 +75,9 @@ public class PlayerController : MonoBehaviour
                         lastHitTable = standingHitInfo.collider.gameObject.transform.parent.gameObject;
                     }
                 }
-                Vector3 start = transform.position;
-                Vector3 rawMousePos = GetMouseWorldPosition();
 
-                // Clamp to max throw range
-                Vector3 clampedTarget = GetClampedTarget(start, rawMousePos, throwController.trajectoryData.maxRange);
-
-                if (Input.GetMouseButton(0))
-                {
-                    throwController.PreviewThrow(start, clampedTarget);
-                }
-
-                if (Input.GetMouseButtonUp(0))
-                {
-                    throwController.ExecuteThrow(start, clampedTarget);
-                }
-
-                if (Input.GetMouseButtonDown(1))
-                {
-                    throwController.CancelPreview();
-                }
-                break;
+         
+        break;
 
             case PlayerState.Running:
                 if (move == Vector3.zero)
@@ -209,6 +192,18 @@ public class PlayerController : MonoBehaviour
             return start + direction.normalized * maxRange;
         else
             return target;
+    }
+    bool TryGetMouseWorldPosition(out Vector3 worldPosition)
+    {
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+        if (Physics.Raycast(ray, out RaycastHit hitInfo, 100f))
+        {
+            worldPosition = hitInfo.point;
+            return true;
+        }
+
+        worldPosition = Vector3.zero;
+        return false;
     }
 
 }

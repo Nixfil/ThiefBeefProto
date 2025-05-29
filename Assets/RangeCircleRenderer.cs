@@ -6,7 +6,7 @@ public class RangeCircleRenderer : MonoBehaviour
     
     public int segments = 60;
     public float radius;
-    private LineRenderer lineRenderer;
+    public LineRenderer lineRenderer;
 
     void Awake()
     {

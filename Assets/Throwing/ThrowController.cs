@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public class ThrowController : MonoBehaviour
 {
@@ -9,11 +9,18 @@ public class ThrowController : MonoBehaviour
     public LayerMask groundMask;
     public LayerMask interruptThrowMask;
     public LayerMask validThrowMask;
+    public LayerMask triggerInterruptLayerMask; // NEW: Special trigger mask
     public GameObject ghostIndicatorPrefab;
     public GameObject ghostRangeIndicator;
     public RangeCircleRenderer MinThrowRangeCircle;
     public RangeCircleRenderer MaxThrowRangeCircle;
     public GameObject interruptMarkerPrefab;
+
+    [Header("Materials")]
+    public Material CorrectThrowMaterial;
+    public Material WrongThrowMaterial;
+    public Color CorrectThrowColor;
+    public Color WrongThrowColor;
 
 
     [Header("Throw Settings")]
@@ -32,6 +39,7 @@ public class ThrowController : MonoBehaviour
     private GameObject interruptMarkerInstance;
     private Camera cam;
     private bool isAiming;
+    private bool isThrowValid = false;
 
     void Start()
     {
@@ -71,12 +79,17 @@ public class ThrowController : MonoBehaviour
     {
         isAiming = false;
 
-            if (cachedTarget.HasValue)
-        {
-            ThrowProjectile(cachedVelocity);
-        }
+            if (cachedTarget.HasValue && isThrowValid)
+            {
+                ThrowProjectile(cachedVelocity);
+            }
+            else
+            {
+                ghostInstance.SetActive(false);
+            }
 
-        lineRenderer.enabled = false;
+
+            lineRenderer.enabled = false;
         MinThrowRangeCircle.ToggleCircle(false);
         MaxThrowRangeCircle.ToggleCircle(false);
 
@@ -200,6 +213,8 @@ public class ThrowController : MonoBehaviour
 
         Vector3 hitPoint = prevPoint;
         bool hitSomething = false;
+        bool interruptedByTable = false;
+        bool interrupted = false;
 
         for (int i = 1; i < trajectorySteps; i++)
         {
@@ -211,38 +226,56 @@ public class ThrowController : MonoBehaviour
                 hitPoint = hit.point;
                 lineRenderer.SetPosition(i, hitPoint);
                 hitSomething = true;
+                interrupted = true;
 
                 for (int j = i + 1; j < trajectorySteps; j++)
-                {
                     lineRenderer.SetPosition(j, hitPoint);
+
+                // Check if hit collider is in triggerInterruptLayerMask (tables)
+                if (((1 << hit.collider.gameObject.layer) & triggerInterruptLayerMask) != 0)
+                {
+                    interruptedByTable = true;
+                    isThrowValid = false;  // Mark invalid throw
+                    SwitchAimColors(false); // wrong throw
+                }
+                else
+                {
+                    isThrowValid = true; // valid throw if interrupted by wall
+                    SwitchAimColors(true); // correct throw
                 }
 
-                // === Spawn or reposition marker ===
+
+                // Show marker at hit point
                 if (interruptMarkerInstance == null && interruptMarkerPrefab != null)
-                {
                     interruptMarkerInstance = Instantiate(interruptMarkerPrefab);
-                }
 
                 if (interruptMarkerInstance != null)
                 {
                     interruptMarkerInstance.SetActive(true);
                     var rotator = interruptMarkerInstance.GetComponent<RotateOnWall>();
                     if (rotator != null)
-                    {
                         rotator.SetPositionAndOrientation(hit.point, hit.normal);
-                    }
                 }
 
-                break;
+                break; // stop trajectory on interruption
             }
-
-
 
             lineRenderer.SetPosition(i, point);
             prevPoint = point;
             hitPoint = point;
         }
 
+        // If no interruption at all, correct throw & hide marker
+        if (!interrupted && cachedTarget.HasValue)
+        {
+            isThrowValid = true;
+            SwitchAimColors(true);
+            if (interruptMarkerInstance != null)
+                interruptMarkerInstance.SetActive(false);
+        }
+
+
+        // Ghost indicator logic (unchanged)
         if (ghostInstance == null && ghostIndicatorPrefab != null)
         {
             ghostInstance = Instantiate(ghostIndicatorPrefab);
@@ -256,11 +289,11 @@ public class ThrowController : MonoBehaviour
             Vector3 closerPoint = Vector3.MoveTowards(targetPoint, startPos, AimOffset);
             ghostInstance.transform.position = closerPoint;
         }
-        if (!hitSomething && interruptMarkerInstance != null)
-        {
-            interruptMarkerInstance.SetActive(false);
-        }
     }
+
+
+
+
 
 
 
@@ -273,4 +306,49 @@ public class ThrowController : MonoBehaviour
             rb.velocity = velocity;
         }
     }
+    void SwitchAimColors(bool throwStatus)
+    {
+        if (!throwStatus)
+        {
+            MinThrowRangeCircle.lineRenderer.material = WrongThrowMaterial;
+            MaxThrowRangeCircle.lineRenderer.material = WrongThrowMaterial;
+            lineRenderer.material = WrongThrowMaterial;
+
+            if (ghostInstance != null)
+            {
+                var sr = ghostInstance.GetComponent<SpriteRenderer>();
+                if (sr != null)
+                    sr.color = WrongThrowColor;
+            }
+
+            if (interruptMarkerInstance != null)
+            {
+                var rotator = interruptMarkerInstance.GetComponent<RotateOnWall>();
+                if (rotator != null && rotator.Sprite != null)
+                    rotator.Sprite.color = WrongThrowColor;
+            }
+        }
+        else
+        {
+            MinThrowRangeCircle.lineRenderer.material = CorrectThrowMaterial;
+            MaxThrowRangeCircle.lineRenderer.material = CorrectThrowMaterial;
+            lineRenderer.material = CorrectThrowMaterial;
+
+            if (ghostInstance != null)
+            {
+                var sr = ghostInstance.GetComponent<SpriteRenderer>();
+                if (sr != null)
+                    sr.color = CorrectThrowColor;
+            }
+
+            if (interruptMarkerInstance != null)
+            {
+                var rotator = interruptMarkerInstance.GetComponent<RotateOnWall>();
+                if (rotator != null && rotator.Sprite != null)
+                    rotator.Sprite.color = CorrectThrowColor;
+            }
+        }
+    }
+
+
 }

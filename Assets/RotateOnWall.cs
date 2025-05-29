@@ -1,8 +1,10 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 public class RotateOnWall : MonoBehaviour
 {
     public float rotationSpeed = 45f;
+    public SpriteRenderer Sprite;
     public Transform rotatingChild;
 
     private Vector3 currentNormal = Vector3.up;

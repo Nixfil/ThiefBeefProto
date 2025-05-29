@@ -130,6 +130,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   rotationSpeed: 45
+  Sprite: {fileID: 8317316933968890272}
   rotatingChild: {fileID: 6935364571007265869}
 --- !u!1 &7888715625801530514
 GameObject:

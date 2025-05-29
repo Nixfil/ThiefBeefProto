@@ -122,6 +122,9 @@ MonoBehaviour:
   rotationSpeed: {x: 0, y: 270, z: 0}
   graceDistance: 3
   upwardForce: 2
+  SolidGroundForSFX:
+    serializedVersion: 2
+    m_Bits: 3072
   rb: {fileID: 6587320982734886958}
 --- !u!54 &6587320982734886958
 Rigidbody:

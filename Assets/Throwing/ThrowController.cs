@@ -31,6 +31,7 @@ public class ThrowController : MonoBehaviour
     public int trajectorySteps = 30;
     public float minThrowAngle = 25f;
     public float maxThrowAngle = 60f;
+    public float estimatedDuration;
     public AnimationCurve angleByDistance; // Define this in the inspector!
 
     private Vector3? cachedTarget = null;
@@ -71,7 +72,9 @@ public class ThrowController : MonoBehaviour
                 cachedVelocity = velocity;
 
                 DrawTrajectory(spawnPoint.position, velocity);
-            }
+                float throwDuration = CalculateThrowDuration(spawnPoint.position, velocity);
+                    estimatedDuration = throwDuration;
+                }
         }
     }
 
@@ -82,10 +85,13 @@ public class ThrowController : MonoBehaviour
             if (cachedTarget.HasValue && isThrowValid)
             {
                 ThrowProjectile(cachedVelocity);
+                AudioManager.Instance.PlaySFX(AudioManager.Instance.Throw);
+                AudioManager.Instance.PlayBoomerangLoop(estimatedDuration);
             }
             else
             {
                 ghostInstance.SetActive(false);
+                AudioManager.Instance.PlaySFX(AudioManager.Instance.CancelThrow);
             }
 
 
@@ -215,6 +221,7 @@ public class ThrowController : MonoBehaviour
         bool hitSomething = false;
         bool interruptedByTable = false;
         bool interrupted = false;
+        RaycastHit lastHit = default;
 
         for (int i = 1; i < trajectorySteps; i++)
         {
@@ -227,6 +234,7 @@ public class ThrowController : MonoBehaviour
                 lineRenderer.SetPosition(i, hitPoint);
                 hitSomething = true;
                 interrupted = true;
+                lastHit = hit;
 
                 for (int j = i + 1; j < trajectorySteps; j++)
                     lineRenderer.SetPosition(j, hitPoint);
@@ -244,17 +252,25 @@ public class ThrowController : MonoBehaviour
                     SwitchAimColors(true); // correct throw
                 }
 
-
-                // Show marker at hit point
-                if (interruptMarkerInstance == null && interruptMarkerPrefab != null)
-                    interruptMarkerInstance = Instantiate(interruptMarkerPrefab);
-
-                if (interruptMarkerInstance != null)
+                // Show marker only if hit is NOT ground
+                if (((1 << hit.collider.gameObject.layer) & groundMask) == 0)
                 {
-                    interruptMarkerInstance.SetActive(true);
-                    var rotator = interruptMarkerInstance.GetComponent<RotateOnWall>();
-                    if (rotator != null)
-                        rotator.SetPositionAndOrientation(hit.point, hit.normal);
+                    if (interruptMarkerInstance == null && interruptMarkerPrefab != null)
+                        interruptMarkerInstance = Instantiate(interruptMarkerPrefab);
+
+                    if (interruptMarkerInstance != null)
+                    {
+                        interruptMarkerInstance.SetActive(true);
+                        var rotator = interruptMarkerInstance.GetComponent<RotateOnWall>();
+                        if (rotator != null)
+                            rotator.SetPositionAndOrientation(hit.point, hit.normal);
+                    }
+                }
+                else
+                {
+                    // If interrupted by ground, disable marker
+                    if (interruptMarkerInstance != null)
+                        interruptMarkerInstance.SetActive(false);
                 }
 
                 break; // stop trajectory on interruption
@@ -265,7 +281,22 @@ public class ThrowController : MonoBehaviour
             hitPoint = point;
         }
 
-        // If no interruption at all, correct throw & hide marker
+        if (!hitSomething)
+        {
+            // Use the last point drawn on the line renderer
+            Vector3 finalPoint = lineRenderer.GetPosition(trajectorySteps - 1);
+            float totalDistance = Vector3.Distance(startPos, finalPoint);
+            float averageSpeed = velocity.magnitude; // Approximation
+            estimatedDuration = totalDistance / averageSpeed;
+        }
+        else
+        {
+            float totalDistance = Vector3.Distance(startPos, hitPoint);
+            float averageSpeed = velocity.magnitude;
+            estimatedDuration = totalDistance / averageSpeed;
+        }
+
+        // If no interruption at all, mark valid, switch colors, and hide marker
         if (!interrupted && cachedTarget.HasValue)
         {
             isThrowValid = true;
@@ -273,7 +304,6 @@ public class ThrowController : MonoBehaviour
             if (interruptMarkerInstance != null)
                 interruptMarkerInstance.SetActive(false);
         }
-
 
         // Ghost indicator logic (unchanged)
         if (ghostInstance == null && ghostIndicatorPrefab != null)
@@ -292,6 +322,28 @@ public class ThrowController : MonoBehaviour
     }
 
 
+
+    float CalculateThrowDuration(Vector3 startPos, Vector3 velocity)
+    {
+        float maxTime = trajectorySteps * 0.1f; // your current step size and step count
+        Vector3 prevPoint = startPos;
+
+        for (int i = 1; i < trajectorySteps; i++)
+        {
+            float t = i * 0.1f;
+            Vector3 point = startPos + velocity * t + 0.5f * Physics.gravity * t * t;
+
+            // Check for interruption
+            if (Physics.Raycast(prevPoint, point - prevPoint, out RaycastHit hit, (point - prevPoint).magnitude, interruptThrowMask))
+            {
+                return t; // Duration until interruption
+            }
+
+            prevPoint = point;
+        }
+
+        return maxTime; // Duration if no interruption
+    }
 
 
 

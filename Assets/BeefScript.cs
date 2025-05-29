@@ -7,6 +7,7 @@ public class BeefScript : MonoBehaviour
     public Vector3 rotationSpeed = new Vector3(0f, 45f, 0f);
     public float graceDistance = 3f;
     public float upwardForce = 2f;
+    public LayerMask SolidGroundForSFX;
     public Rigidbody rb;
 
     private void Start()
@@ -28,6 +29,13 @@ public class BeefScript : MonoBehaviour
                 float factor = 1 - (hit.distance / graceDistance);
                 rb.AddForce(Vector3.up * upwardForce * factor, ForceMode.Acceleration);
             }
+        }
+    }
+    private void OnCollisionEnter(Collision collision)
+    {
+        if (((1 << collision.gameObject.layer) & SolidGroundForSFX) != 0)
+        {
+            AudioManager.Instance.PlaySFX(AudioManager.Instance.Fall);
         }
     }
 }

@@ -23,6 +23,8 @@ public class ThrowController : MonoBehaviour
     public float maxThrowAngle = 60f;
     public AnimationCurve angleByDistance; // Define this in the inspector!
 
+    private Vector3? cachedTarget = null;
+    private Vector3 cachedVelocity;
     private GameObject ghostInstance;
     private Camera cam;
     private bool isAiming;
@@ -37,72 +39,103 @@ public class ThrowController : MonoBehaviour
     }
 
     void Update()
+{
+    if (Input.GetMouseButtonDown(0))
     {
-        if (Input.GetMouseButtonDown(0))
-        {
-            isAiming = true;
-            MinThrowRangeCircle.ToggleCircle(true);
-            MaxThrowRangeCircle.ToggleCircle(true);
-        }
+        isAiming = true;
+        MinThrowRangeCircle.ToggleCircle(true);
+        MaxThrowRangeCircle.ToggleCircle(true);
+    }
 
-        if (Input.GetMouseButton(0) && isAiming)
+    if (Input.GetMouseButton(0) && isAiming)
+    {
+        Vector3? target = GetMouseTargetPoint();
+        if (target.HasValue)
         {
-            
-            Vector3? target = GetMouseTargetPoint();
-            if (target.HasValue)
+            Vector3 velocity;
+            if (ComputeVelocityArc(target.Value, out velocity))
             {
-                Vector3 velocity;
-                if (ComputeVelocityArc(target.Value, out velocity))
-                {
-                    DrawTrajectory(spawnPoint.position, velocity);
-                }
-            }
-        }
+                cachedTarget = target.Value;
+                cachedVelocity = velocity;
 
-        if (Input.GetMouseButtonUp(0) && isAiming)
-        {
-            isAiming = false;
-            Vector3? target = GetMouseTargetPoint();
-            if (target.HasValue)
-            {
-                Vector3 velocity;
-                if (ComputeVelocityArc(target.Value, out velocity))
-                {
-                    ThrowProjectile(velocity);
-                }
+                DrawTrajectory(spawnPoint.position, velocity);
             }
-
-            lineRenderer.enabled = false;
-            MinThrowRangeCircle.ToggleCircle(false);
-            MaxThrowRangeCircle.ToggleCircle(false);
         }
     }
+
+    if (Input.GetMouseButtonUp(0) && isAiming)
+    {
+        isAiming = false;
+
+        if (cachedTarget.HasValue)
+        {
+            ThrowProjectile(cachedVelocity);
+        }
+
+        lineRenderer.enabled = false;
+        MinThrowRangeCircle.ToggleCircle(false);
+        MaxThrowRangeCircle.ToggleCircle(false);
+
+        cachedTarget = null; // Reset cache
+    }
+}
+
 
     Vector3? GetMouseTargetPoint()
     {
         Ray ray = cam.ScreenPointToRay(Input.mousePosition);
-        if (Physics.Raycast(ray, out RaycastHit hit, 100f, groundMask))
+
+        if (Physics.Raycast(ray, out RaycastHit hit, 100f, ~0)) // Cast against all layers
         {
-            Vector3 hitPoint = hit.point;
-            Vector3 fromSpawn = hitPoint - spawnPoint.position;
-            fromSpawn.y = 0; // Only consider horizontal distance
-
-            float distance = fromSpawn.magnitude;
-
-            if (distance < minThrowRange)
+            // Check if hit is ground
+            if (((1 << hit.collider.gameObject.layer) & groundMask) != 0)
             {
-                hitPoint = spawnPoint.position + fromSpawn.normalized * minThrowRange;
+                // Check distance to spawnPoint
+                float dist = Vector3.Distance(spawnPoint.position, hit.point);
+                if (dist >= minThrowRange && dist <= maxThrowRange)
+                {
+                    return hit.point; // Valid ground point within range
+                }
+                else
+                {
+                    return null; // Ground but out of range
+                }
             }
-            else if (distance > maxThrowRange)
+            else
             {
-                hitPoint = spawnPoint.position + fromSpawn.normalized * maxThrowRange;
-            }
+                // Not ground - try to find nearby ground by radial probe
+                float radius = 1.5f;
+                int steps = 16;
+                float heightOffset = 2f;
 
-            return hitPoint;
+                for (int i = 0; i < steps; i++)
+                {
+                    float angle = (360f / steps) * i;
+                    Vector3 direction = new Vector3(Mathf.Cos(angle * Mathf.Deg2Rad), 0f, Mathf.Sin(angle * Mathf.Deg2Rad));
+                    Vector3 probeOrigin = hit.point + direction * radius + Vector3.up * heightOffset;
+                    Debug.DrawRay(probeOrigin, Vector3.down * (heightOffset + 1f), Color.red, 0.1f);
+
+                    if (Physics.Raycast(probeOrigin, Vector3.down, out RaycastHit groundHit, heightOffset + 1f, groundMask))
+                    {
+                        // Check distance for snapped ground point
+                        float dist = Vector3.Distance(spawnPoint.position, groundHit.point);
+                        if (dist >= minThrowRange && dist <= maxThrowRange)
+                        {
+                            return groundHit.point; // Valid snapped ground point within range
+                        }
+                    }
+                }
+
+                // No nearby valid ground found within range
+                return null;
+            }
         }
 
+        // Nothing hit
         return null;
     }
+
+
 
 
     bool ComputeVelocityArc(Vector3 target, out Vector3 velocity)

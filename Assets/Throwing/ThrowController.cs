@@ -9,9 +9,13 @@ public class ThrowController : MonoBehaviour
     public LayerMask groundMask;
     public LayerMask throwMask;
     public GameObject ghostIndicatorPrefab;
-
+    public GameObject ghostRangeIndicator;
+    public RangeCircleRenderer MinThrowRangeCircle;
+    public RangeCircleRenderer MaxThrowRangeCircle;
 
     [Header("Throw Settings")]
+    public float minThrowRange = 2f;
+    public float maxThrowRange = 25f;
     public float AimOffset;
     public float gravity = 9.81f;
     public int trajectorySteps = 30;
@@ -28,6 +32,8 @@ public class ThrowController : MonoBehaviour
         cam = Camera.main;
         lineRenderer.positionCount = trajectorySteps;
         lineRenderer.enabled = false;
+        MinThrowRangeCircle.SetRadius(minThrowRange - 2.55f);
+        MaxThrowRangeCircle.SetRadius(maxThrowRange + 2);
     }
 
     void Update()
@@ -35,10 +41,13 @@ public class ThrowController : MonoBehaviour
         if (Input.GetMouseButtonDown(0))
         {
             isAiming = true;
+            MinThrowRangeCircle.ToggleCircle(true);
+            MaxThrowRangeCircle.ToggleCircle(true);
         }
 
         if (Input.GetMouseButton(0) && isAiming)
         {
+            
             Vector3? target = GetMouseTargetPoint();
             if (target.HasValue)
             {
@@ -64,6 +73,8 @@ public class ThrowController : MonoBehaviour
             }
 
             lineRenderer.enabled = false;
+            MinThrowRangeCircle.ToggleCircle(false);
+            MaxThrowRangeCircle.ToggleCircle(false);
         }
     }
 
@@ -72,10 +83,27 @@ public class ThrowController : MonoBehaviour
         Ray ray = cam.ScreenPointToRay(Input.mousePosition);
         if (Physics.Raycast(ray, out RaycastHit hit, 100f, groundMask))
         {
-            return hit.point;
+            Vector3 hitPoint = hit.point;
+            Vector3 fromSpawn = hitPoint - spawnPoint.position;
+            fromSpawn.y = 0; // Only consider horizontal distance
+
+            float distance = fromSpawn.magnitude;
+
+            if (distance < minThrowRange)
+            {
+                hitPoint = spawnPoint.position + fromSpawn.normalized * minThrowRange;
+            }
+            else if (distance > maxThrowRange)
+            {
+                hitPoint = spawnPoint.position + fromSpawn.normalized * maxThrowRange;
+            }
+
+            return hitPoint;
         }
+
         return null;
     }
+
 
     bool ComputeVelocityArc(Vector3 target, out Vector3 velocity)
     {

@@ -22,6 +22,8 @@ public class PlayerController : MonoBehaviour
     public LayerMask mask;
     public bool roofed;
     public Vector3 move;
+    public float normalHeight = 2.0f;
+    public float crouchHeight = 0.5f;
 
 
     [SerializeField] private PlayerState currentState;
@@ -35,12 +37,14 @@ public class PlayerController : MonoBehaviour
     private Vector3 rollDirection;
     private GameObject lastHitTable = null;
     private Vector3 aimDirection;
+    private double originalCenterY;
 
 
     void Start()
     {
         rb = GetComponent<Rigidbody>();
         rb.useGravity = false; // Disable gravity
+        originalCenterY = capsuleCollider.center.y;
         currentState = PlayerState.Idle; // Start in Idle state
     }
 
@@ -149,7 +153,7 @@ public class PlayerController : MonoBehaviour
 
     private void Roll()
     {
-        capsuleCollider.height = 0.3f * capsuleCollider.height;
+        capsuleCollider.height = 0.1f;
         rollTime += Time.deltaTime;
 
         // Adjust speed
@@ -166,6 +170,7 @@ public class PlayerController : MonoBehaviour
             ChangeState(PlayerState.Idle);
         }
         else if (currentRollSpeed < 10) { currentRollSpeed = 18; }
+        Debug.Log(capsuleCollider.height);
     }
 
 

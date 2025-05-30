@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 6926784516159770486}
   - component: {fileID: 2441785077833751473}
   - component: {fileID: 3560120576773436713}
+  - component: {fileID: -5867003115203623825}
   - component: {fileID: 6587320982734886958}
   m_Layer: 9
   m_Name: Beef
@@ -126,6 +127,18 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 3072
   rb: {fileID: 6587320982734886958}
+--- !u!114 &-5867003115203623825
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1470094372982362253}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7b13eb966bcfbef4d947b70d7149dfc8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!54 &6587320982734886958
 Rigidbody:
   m_ObjectHideFlags: 0

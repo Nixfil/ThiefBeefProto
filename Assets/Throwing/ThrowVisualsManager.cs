@@ -2,16 +2,14 @@
 using UnityEngine;
 
 // Define a struct to return information about the trajectory's visual outcome
-public struct ThrowData // Renamed from ThrowValidityInfo as requested
+public struct ThrowData
 {
     public Vector3 StartPosition;
-    public Vector3 EndPosition; // This will be the end of the drawn line, or the interrupt point
+    public Vector3 EndPosition;
     public bool WasInterrupted;
     public Vector3 InterruptPoint;
     public bool InterruptedByTable;
     public RaycastHit LastHit;
-    // Note: IsValidThrow is derived from InterruptedByTable, but for explicit clarity,
-    // you could add 'bool IsValidThrow;' here if needed by ThrowController directly.
 }
 
 public class ThrowVisualsManager : MonoBehaviour
@@ -80,6 +78,11 @@ public class ThrowVisualsManager : MonoBehaviour
     /// <returns>A ThrowData struct containing details about the trajectory's path and interruptions.</returns>
     public ThrowData ShowAimingVisuals(Vector3 spawnPoint, Vector3? targetPoint, Vector3 velocity)
     {
+        // Ensure line renderer and range circles are active when visuals are shown
+        lineRenderer.enabled = true;
+        MinThrowRangeCircle.ToggleCircle(true);
+        MaxThrowRangeCircle.ToggleCircle(true);
+
         ThrowData currentThrowData = new ThrowData
         {
             StartPosition = spawnPoint,
@@ -144,6 +147,7 @@ public class ThrowVisualsManager : MonoBehaviour
         // Update colors for all visuals
         SetAimingColors(currentIsThrowValid);
 
+
         // --- Ghost Indicator Management ---
         if (targetPoint.HasValue && lineRenderer.enabled)
         {
@@ -166,7 +170,23 @@ public class ThrowVisualsManager : MonoBehaviour
         }
 
         // --- Interrupt Marker Management ---
-        if (currentThrowData.WasInterrupted && !currentThrowData.InterruptedByTable) // Show marker if interrupted by non-table objects
+        // New logic to control the X marker's visibility
+        bool showInterruptMarker = false;
+        if (currentThrowData.WasInterrupted)
+        {
+            // If it was interrupted by a table, always show the marker
+            if (currentThrowData.InterruptedByTable)
+            {
+                showInterruptMarker = true;
+            }
+            // If it was interrupted, AND it was NOT by the ground layer, show the marker (i.e., a wall)
+            else if (((1 << currentThrowData.LastHit.collider.gameObject.layer) & _groundMask) == 0)
+            {
+                showInterruptMarker = true;
+            }
+        }
+
+        if (showInterruptMarker)
         {
             if (_interruptMarkerInstance == null && interruptMarkerPrefab != null)
             {
@@ -180,21 +200,7 @@ public class ThrowVisualsManager : MonoBehaviour
                     rotator.SetPositionAndOrientation(currentThrowData.InterruptPoint, currentThrowData.LastHit.normal);
             }
         }
-        else if (currentThrowData.InterruptedByTable) // Always show marker on tables (red X)
-        {
-            if (_interruptMarkerInstance == null && interruptMarkerPrefab != null)
-            {
-                _interruptMarkerInstance = Instantiate(interruptMarkerPrefab);
-            }
-            if (_interruptMarkerInstance != null)
-            {
-                _interruptMarkerInstance.SetActive(true);
-                var rotator = _interruptMarkerInstance.GetComponent<RotateOnWall>();
-                if (rotator != null)
-                    rotator.SetPositionAndOrientation(currentThrowData.InterruptPoint, currentThrowData.LastHit.normal);
-            }
-        }
-        else // Hide marker if no interruption or if it was a valid ground hit
+        else // Hide marker if it should not be active
         {
             if (_interruptMarkerInstance != null) _interruptMarkerInstance.SetActive(false);
         }

@@ -41,6 +41,8 @@ public class ThrowController : MonoBehaviour
     private Camera cam;
     private bool isAiming;
     private bool isThrowValid = false;
+    private bool wasInterrupted = false;
+
 
     void Start()
     {
@@ -85,6 +87,10 @@ public class ThrowController : MonoBehaviour
             if (cachedTarget.HasValue && isThrowValid)
             {
                 ThrowProjectile(cachedVelocity);
+                if (wasInterrupted && ghostInstance != null)
+                {
+                    ghostInstance.SetActive(false);
+                }
                 AudioManager.Instance.PlaySFX(AudioManager.Instance.Throw);
                 AudioManager.Instance.PlayBoomerangLoop(estimatedDuration);
             }
@@ -220,7 +226,7 @@ public class ThrowController : MonoBehaviour
         Vector3 hitPoint = prevPoint;
         bool hitSomething = false;
         bool interruptedByTable = false;
-        bool interrupted = false;
+        wasInterrupted = false;
         RaycastHit lastHit = default;
 
         for (int i = 1; i < trajectorySteps; i++)
@@ -233,7 +239,7 @@ public class ThrowController : MonoBehaviour
                 hitPoint = hit.point;
                 lineRenderer.SetPosition(i, hitPoint);
                 hitSomething = true;
-                interrupted = true;
+                wasInterrupted = true;
                 lastHit = hit;
 
                 for (int j = i + 1; j < trajectorySteps; j++)
@@ -297,7 +303,7 @@ public class ThrowController : MonoBehaviour
         }
 
         // If no interruption at all, mark valid, switch colors, and hide marker
-        if (!interrupted && cachedTarget.HasValue)
+        if (!wasInterrupted && cachedTarget.HasValue)
         {
             isThrowValid = true;
             SwitchAimColors(true);

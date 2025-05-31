@@ -1,4 +1,4 @@
-// FILE: TrajectoryCalculator.cs
+// FILE: TrajectoryCalculator.cs (Modified)
 using UnityEngine;
 
 public static class TrajectoryCalculator
@@ -23,27 +23,50 @@ public static class TrajectoryCalculator
         dir.y = 0; // Horizontal projection
         float distance = dir.magnitude; // Horizontal distance
 
+        Debug.Log($"TrajectoryCalculator: ComputeVelocityArc called. Start: {start}, Target: {target}, Distance: {distance}, Height: {h}");
+
         // Handle cases where curve might be null or empty
         if (angleByDistance == null || angleByDistance.keys.Length == 0)
         {
-            Debug.LogWarning("AngleByDistance curve is not set or empty in TrajectoryCalculator. Using default angle.");
+            Debug.LogWarning("TrajectoryCalculator: AngleByDistance curve is not set or empty. Using default angle.");
             // Fallback to a mid-range angle if curve is missing
             float defaultAngle = Mathf.Lerp(minAngle, maxAngle, 0.5f);
             float defaultRadians = defaultAngle * Mathf.Deg2Rad;
             float defaultCos = Mathf.Cos(defaultRadians);
             float defaultTan = Mathf.Tan(defaultRadians);
 
-            float defaultV2 = (gravity * distance * distance) / (2 * defaultCos * defaultCos * (distance * defaultTan - h));
-            if (defaultV2 < 0) return false;
+            // Ensure distance is not zero to prevent division by zero
+            if (distance < 0.01f) // Small epsilon to avoid division by zero
+            {
+                Debug.LogWarning("TrajectoryCalculator: Horizontal distance too small for arc calculation, returning false.");
+                return false;
+            }
+
+            float denominator = (2 * defaultCos * defaultCos * (distance * defaultTan - h));
+            if (Mathf.Abs(denominator) < 0.001f) // Avoid division by near-zero
+            {
+                Debug.LogWarning("TrajectoryCalculator: Denominator near zero, returning false.");
+                return false;
+            }
+
+            float defaultV2 = (gravity * distance * distance) / denominator;
+            if (defaultV2 < 0)
+            {
+                Debug.Log($"TrajectoryCalculator: Default V2 is negative ({defaultV2}), no valid arc. Returning false.");
+                return false;
+            }
             float defaultV = Mathf.Sqrt(defaultV2);
 
             Vector3 defaultDirNormalized = dir.normalized;
             velocity = defaultDirNormalized * defaultV * defaultCos + Vector3.up * defaultV * Mathf.Sin(defaultRadians);
+            Debug.Log($"TrajectoryCalculator: Default arc computed. Velocity: {velocity}");
             return true;
         }
 
         // Normalize distance for curve evaluation (assuming curve is mapped from 0 to 1 for a max practical distance, e.g., 20 units)
-        float normalizedDistanceForCurve = Mathf.Clamp01(distance / 20f); // Adjust '20f' based on your actual max throw distance for the curve mapping
+        float maxEffectiveDistanceForCurve = 50f; // A reasonable max for curve normalization, adjust as needed
+        float normalizedDistanceForCurve = Mathf.Clamp01(distance / maxEffectiveDistanceForCurve);
+        Debug.Log($"TrajectoryCalculator: Normalized distance for curve: {normalizedDistanceForCurve}");
 
         float angle = Mathf.Lerp(minAngle, maxAngle, angleByDistance.Evaluate(normalizedDistanceForCurve));
         float radians = angle * Mathf.Deg2Rad;
@@ -52,18 +75,22 @@ public static class TrajectoryCalculator
         float sin = Mathf.Sin(radians);
         float tan = Mathf.Tan(radians);
 
-        // Projectile motion formula for initial velocity
-        // v^2 = (g * x^2) / (2 * cos^2(theta) * (x * tan(theta) - y))
         float v2 = (gravity * distance * distance) / (2 * cos * cos * (distance * tan - h));
 
-        if (v2 < 0) return false; // No valid arc exists (e.g., target too far for angle, or trying to throw downwards too steeply)
+        if (v2 < 0)
+        {
+            Debug.Log($"TrajectoryCalculator: V2 is negative ({v2}), no valid arc exists (e.g., target too far for angle, or trying to throw downwards too steeply). Returning false.");
+            return false; // No valid arc exists
+        }
 
         float v = Mathf.Sqrt(v2);
 
         Vector3 dirNormalized = dir.normalized;
         velocity = dirNormalized * v * cos + Vector3.up * v * sin;
+        Debug.Log($"TrajectoryCalculator: Arc computed. Velocity: {velocity}");
         return true;
     }
+
 
     /// <summary>
     /// Draws the trajectory path using a LineRenderer and checks for interruptions.
@@ -107,8 +134,10 @@ public static class TrajectoryCalculator
         for (int i = 1; i < trajectorySteps; i++)
         {
             float t = i * stepDeltaTime;
-            Vector3 point = startPos + velocity * t + 0.5f * Physics.gravity * t * t; // Note: Uses Physics.gravity
+            // Note: Uses Physics.gravity for trajectory calculation
+            Vector3 point = startPos + velocity * t + 0.5f * Physics.gravity * t * t;
 
+            // Check for collision between previous point and current point
             if (Physics.Raycast(prevPoint, point - prevPoint, out RaycastHit hit, (point - prevPoint).magnitude, interruptMask))
             {
                 interruptPoint = hit.point;

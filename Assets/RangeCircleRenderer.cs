@@ -44,4 +44,10 @@ public class RangeCircleRenderer : MonoBehaviour
     {
         lineRenderer.enabled = toggle;
     }
+    public void SetCenter(Vector3 center)
+    {
+        this.transform.position = center;
+        // No need to call DrawCircle() here if it's handled by SetRadius or ToggleCircle
+        // as you described in your ThrowVisualsManager pattern.
+    }
 }

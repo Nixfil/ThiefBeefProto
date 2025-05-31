@@ -1,6 +1,7 @@
-// FILE: GameTimeManager.cs (Modified)
+// FILE: GameTimeManager.cs (Modified - With Event)
 using System.Collections.Generic;
 using UnityEngine;
+using System; // Required for Action event
 
 /// <summary>
 /// Manages the physics state of registered Rigidbodies by directly pausing/resuming their movement.
@@ -10,6 +11,9 @@ using UnityEngine;
 public class GameTimeManager : MonoBehaviour
 {
     public static GameTimeManager Instance { get; private set; }
+
+    // NEW: Event to notify listeners when time has been resumed
+    public static event Action OnTimeResumed;
 
     // Struct to store the state of a Rigidbody before freezing
     private struct RigidbodyState
@@ -149,6 +153,9 @@ public class GameTimeManager : MonoBehaviour
                 Debug.LogWarning($"GameTimeManager: Attempted to restore a null or inactive Rigidbody ({state.rb?.name ?? "NULL"}). It will not be restored.");
             }
         }
-        Debug.Log("GameTimeManager: All registered Rigidbodies resumed.");
+        Debug.Log("Game time resumed. Time.timeScale is now > 0.");
+
+        // NEW: Invoke the event after all rigidbodies have been resumed
+        OnTimeResumed?.Invoke();
     }
 }

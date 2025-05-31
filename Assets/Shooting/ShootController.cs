@@ -1,4 +1,4 @@
-// FILE: ShootController.cs (Modified)
+// FILE: ShootController.cs (Modified - Event-based Redirection)
 using UnityEngine;
 using System.Linq; // Required for LINQ operations like OrderBy
 
@@ -53,6 +53,22 @@ public class ShootController : MonoBehaviour
 
     // New private field to store the ShootData from the last visual update
     private ShootData _lastVisualShootData;
+
+    // NEW: Fields to store projectile and velocity for event-based redirection
+    private Projectile _projectileToRedirectOnResume;
+    private Vector3 _newVelocityOnResume;
+
+    void OnEnable()
+    {
+        // Subscribe to the OnTimeResumed event when this script is enabled
+        GameTimeManager.OnTimeResumed += OnGameTimeResumed;
+    }
+
+    void OnDisable()
+    {
+        // Unsubscribe from the OnTimeResumed event when this script is disabled
+        GameTimeManager.OnTimeResumed -= OnGameTimeResumed;
+    }
 
     void Start()
     {
@@ -111,7 +127,6 @@ public class ShootController : MonoBehaviour
             // Show initial range circles and ghost at min range
             if (currentTargetProjectile != null) // Ensure there's a projectile to aim at
             {
-                // NEW: Call ShowRedirectionRangeCircles on visualsManager
                 visualsManager.ShowRedirectionRangeCircles(currentTargetProjectile, minRedirectionRange, maxRedirectionRange, targetRedirectionY);
             }
         }
@@ -245,18 +260,15 @@ public class ShootController : MonoBehaviour
             visualsManager.HideAllVisuals(); // Hide all visuals (including circles)
             Debug.Log("RMB Up: Hiding visuals.");
 
-            if (currentTargetProjectile != null && isRedirectionValid)
-            {
-                Debug.Log($"ShootController: Attempting to redirect {currentTargetProjectile.name} with velocity {cachedRedirectionVelocity}");
-                projectileLauncher.RedirectExistingProjectile(currentTargetProjectile, cachedRedirectionVelocity);
-            }
-            else
-            {
-                Debug.Log("ShootController: No valid projectile to redirect or redirection was invalid. Resuming time.");
-                GameTimeManager.Instance.ResumeTime(); // Resume time even if no valid redirect
-            }
+            // Store projectile and velocity for event-based redirection
+            _projectileToRedirectOnResume = currentTargetProjectile;
+            _newVelocityOnResume = cachedRedirectionVelocity;
 
-            currentTargetProjectile = null;
+            // NEW: Resume time. The actual redirection will happen via the OnGameTimeResumed event.
+            GameTimeManager.Instance.ResumeTime();
+            Debug.Log("RMB Up: Resuming time. Redirection will trigger via event.");
+
+            currentTargetProjectile = null; // Clear reference immediately
         }
     }
 
@@ -296,5 +308,26 @@ public class ShootController : MonoBehaviour
             Debug.Log("ShootController: FindClosestActiveProjectile: No valid projectile found in list.");
         }
         return closestProjectile;
+    }
+
+    /// <summary>
+    /// Event handler for GameTimeManager.OnTimeResumed.
+    /// This method is called AFTER GameTimeManager has finished resuming all rigidbodies.
+    /// </summary>
+    private void OnGameTimeResumed()
+    {
+        Debug.Log("ShootController: OnGameTimeResumed event received.");
+        if (_projectileToRedirectOnResume != null && isRedirectionValid)
+        {
+            Debug.Log($"ShootController: Redirecting projectile {_projectileToRedirectOnResume.name} via OnTimeResumed event.");
+            projectileLauncher.RedirectExistingProjectile(_projectileToRedirectOnResume, _newVelocityOnResume);
+            _projectileToRedirectOnResume = null; // Clear after use
+        }
+        else
+        {
+            Debug.Log("ShootController: No valid projectile to redirect on resume, or redirection was invalid.");
+        }
+        // Ensure isRedirectionValid is reset for the next cycle
+        isRedirectionValid = false;
     }
 }

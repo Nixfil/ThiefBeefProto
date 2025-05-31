@@ -1,4 +1,4 @@
-// FILE: ProjectileLauncher.cs (Modified)
+// FILE: ProjectileLauncher.cs (Modified - No ResumeTime)
 using UnityEngine;
 using System.Collections.Generic; // Required for List
 
@@ -56,8 +56,9 @@ public class ProjectileLauncher : MonoBehaviour
     }
 
     /// <summary>
-    /// Redirects an existing projectile by setting its new velocity and resuming time.
+    /// Redirects an existing projectile by setting its new velocity.
     /// This reuses the "launching" concept without instantiating a new object.
+    /// This method no longer calls GameTimeManager.Instance.ResumeTime().
     /// </summary>
     /// <param name="projectileToRedirect">The existing Projectile instance to redirect.</param>
     /// <param name="newVelocity">The new velocity to apply to the projectile.</param>
@@ -86,8 +87,8 @@ public class ProjectileLauncher : MonoBehaviour
         // You might want to reset angular velocity too if it's not desired after redirection
         rb.angularVelocity = Vector3.zero;
 
-        GameTimeManager.Instance.ResumeTime();
-        Debug.Log($"Projectile {projectileToRedirect.name} redirected by Launcher with new velocity: {newVelocity}. Time resumed.");
+        // REMOVED: GameTimeManager.Instance.ResumeTime();
+        Debug.Log($"Projectile {projectileToRedirect.name} redirected by Launcher with new velocity: {newVelocity}.");
 
         // Play redirection specific sound effect
         // AudioManager.Instance.PlaySFX(AudioManager.Instance.RedirectionSuccess); // Example SFX

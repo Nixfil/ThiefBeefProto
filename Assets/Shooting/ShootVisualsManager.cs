@@ -2,7 +2,7 @@
 using UnityEngine;
 
 // Define a struct to return information about the redirection trajectory's visual outcome
-public struct ShootData
+public struct TrajectoryData
 {
     public Vector3 StartPosition;
     public Vector3 EndPosition;
@@ -12,17 +12,29 @@ public struct ShootData
     public RaycastHit LastHit;
 }
 
+public struct ShotData
+{
+    public Vector3 StartPosition;
+    public Vector3 EndPosition;
+    public bool WasInterrupted;
+    public RaycastHit LastHit;
+}
+
 /// <summary>
 /// Manages the visual feedback for the projectile redirection mechanic.
 /// Draws the redirection trajectory, ghost indicator, interrupt marker, and range circles.
 /// </summary>
 public class ShootVisualsManager : MonoBehaviour
 {
+    [Header("Controller")]
+    public ShootController Controller;
+
     [Header("Visual References")]
     public LineRenderer redirectionLineRenderer; // Dedicated LineRenderer for the redirection trajectory
     public LineRenderer playerToProjectileLineRenderer; // Line from player to the frozen projectile
     public GameObject ghostIndicatorPrefab; // Prefab for the ghost indicator at the redirection target
     public GameObject interruptMarkerPrefab; // Prefab for the X marker at interruption points
+    public Transform GunPoint;
 
     // REMOVED: Direct references to RangeCircleRenderer as they will now be children of the projectile
     // public RangeCircleRenderer MinRedirectionRangeCircle; 
@@ -43,6 +55,7 @@ public class ShootVisualsManager : MonoBehaviour
     // Internal instances of prefabs
     private GameObject _ghostInstance;
     private GameObject _interruptMarkerInstance;
+
 
     // --- Configuration values passed from ShootController ---
     private float _aimOffset;
@@ -87,14 +100,13 @@ public class ShootVisualsManager : MonoBehaviour
     /// <param name="redirectionVelocity">The calculated initial velocity for the redirected projectile.</param>
     /// <param name="playerOriginPoint">The player's position (for the line to the frozen projectile).</param>
     /// <returns>A ShootData struct containing details about the trajectory's path and interruptions.</returns>
-    public ShootData ShowAimingVisuals(Vector3 redirectionSpawnPoint, Vector3 redirectionTargetPoint, Vector3 redirectionVelocity, Vector3 playerOriginPoint)
+    public TrajectoryData ShowAimingVisuals(Vector3 redirectionSpawnPoint, Vector3 redirectionTargetPoint, Vector3 redirectionVelocity, Vector3 playerOriginPoint)
     {
         // Ensure line renderers are active when visuals are shown
         redirectionLineRenderer.enabled = true;
-        playerToProjectileLineRenderer.enabled = true;
-        // Range circles are managed by ShowRedirectionRangeCircles/HideRedirectionCircles
 
-        ShootData currentShootData = new ShootData
+
+        TrajectoryData currentShootData = new TrajectoryData
         {
             StartPosition = redirectionSpawnPoint,
             EndPosition = redirectionSpawnPoint + redirectionVelocity * (_trajectorySteps * _trajectoryStepDeltaTime) + 0.5f * Physics.gravity * (_trajectorySteps * _trajectoryStepDeltaTime) * (_trajectorySteps * _trajectoryStepDeltaTime), // Default end
@@ -156,11 +168,6 @@ public class ShootVisualsManager : MonoBehaviour
         // Update colors for all visuals
         SetAimingColors(currentIsRedirectionValid);
 
-        // --- Player to Projectile Line ---
-        playerToProjectileLineRenderer.positionCount = 2;
-        playerToProjectileLineRenderer.SetPosition(0, playerOriginPoint);
-        playerToProjectileLineRenderer.SetPosition(1, redirectionSpawnPoint);
-
 
         // --- Ghost Indicator Management ---
         if (redirectionTargetPoint != Vector3.zero && redirectionLineRenderer.enabled)
@@ -220,13 +227,61 @@ public class ShootVisualsManager : MonoBehaviour
         return currentShootData;
     }
 
-    /// <summary>
-    /// Finds and displays the redirection range circles on the target projectile.
-    /// </summary>
-    /// <param name="targetProjectile">The Projectile instance currently being aimed at.</param>
-    /// <param name="minRange">The radius for the minimum range circle.</param>
-    /// <param name="maxRange">The radius for the maximum range circle.</param>
-    /// <param name="yLevel">The Y-coordinate at which the circles should be drawn (e.g., ground level).</param>
+    public ShotData DrawShot()
+    {
+        playerToProjectileLineRenderer.enabled = true;
+        Vector3 targetPos = Controller.currentTargetProjectile.transform.position;
+        ShotData currentShotData = new ShotData
+        {
+            StartPosition = Controller.gunPoint.position,
+            EndPosition = targetPos,
+            WasInterrupted = false,
+            LastHit = default
+        };
+        
+
+        bool isInterrupted = TrajectoryCalculator.CheckLineInterruption(
+            GunPoint.position,
+            targetPos,
+            GameLayers.InterruptShotMask,
+            out RaycastHit hitInfo
+        );
+        currentShotData.EndPosition = hitInfo.point;
+        currentShotData.LastHit = hitInfo;
+
+        currentShotData.WasInterrupted = (GameLayers.TriggerInterruptShotLayerMask & (1 << hitInfo.collider.gameObject.layer)) != 0;
+
+
+        playerToProjectileLineRenderer.positionCount = 2;
+        playerToProjectileLineRenderer.SetPosition(0, currentShotData.StartPosition);
+        playerToProjectileLineRenderer.SetPosition(1, currentShotData.EndPosition);
+        // Check if interrupted
+
+        if (currentShotData.WasInterrupted)
+        {
+            if (_interruptMarkerInstance == null && interruptMarkerPrefab != null)
+            {
+                _interruptMarkerInstance = Instantiate(interruptMarkerPrefab);
+            }
+            if (_interruptMarkerInstance != null)
+            {
+                _interruptMarkerInstance.SetActive(true);
+                var rotator = _interruptMarkerInstance.GetComponent<RotateOnWall>();
+                if (rotator != null)
+                    rotator.SetPositionAndOrientation(currentShotData.EndPosition, currentShotData.LastHit.normal);
+            }
+            SetAimingColors(false);
+        }
+        else
+        {
+            if (_interruptMarkerInstance != null && _interruptMarkerInstance.active) { _interruptMarkerInstance.SetActive(false); }
+            SetAimingColors(true);
+        }
+
+        return currentShotData;
+       
+
+    }
     public void ShowRedirectionRangeCircles(Projectile targetProjectile, float minRange, float maxRange, float yLevel)
     {
         if (targetProjectile == null)

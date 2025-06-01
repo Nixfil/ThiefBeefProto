@@ -13,15 +13,24 @@ public class GameLayers : MonoBehaviour
     public LayerMask validThrowMask;
     [Tooltip("Layers that will interrupt the projectile's trajectory (e.g., walls, tables, ground).")]
     public LayerMask interruptThrowMask;
+    [Tooltip("Layers that will interrupt the shot's trajectory.")]
+    public LayerMask interruptShotMask;
     [Tooltip("Special layers that interrupt a throw and make it 'invalid' (e.g., tables).")]
     public LayerMask triggerInterruptLayerMask;
+    [Tooltip("Special layers that interrupt a throw and make it 'invalid' (e.g., tables).")]
+    public LayerMask triggerInterruptShotLayerMask;
     [Tooltip("The layer(s) considered as ground.")]
     public LayerMask groundMask;
 
     public static LayerMask ValidThrowMask => _instance.validThrowMask;
     public static LayerMask InterruptThrowMask => _instance.interruptThrowMask;
+
+    public static LayerMask InterruptShotMask => _instance.interruptShotMask;
     public static LayerMask TriggerInterruptLayerMask => _instance.triggerInterruptLayerMask;
+
+    public static LayerMask TriggerInterruptShotLayerMask => _instance.triggerInterruptShotLayerMask;
     public static LayerMask GroundMask => _instance.groundMask;
+
 
     void Awake()
     {

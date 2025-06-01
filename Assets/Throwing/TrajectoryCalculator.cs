@@ -195,4 +195,18 @@ public static class TrajectoryCalculator
 
         return trajectorySteps * stepDeltaTime; // Max time if no interruption
     }
+    public static bool CheckLineInterruption(
+    Vector3 start,
+    Vector3 end,
+    LayerMask interruptMask,
+    out RaycastHit hitInfo)
+    {
+        Vector3 dir = end - start;
+        if (Physics.Raycast(start, dir.normalized, out hitInfo, dir.magnitude, interruptMask))
+        {
+            return true;
+        }
+        return false;
+    }
+
 }

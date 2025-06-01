@@ -618,8 +618,8 @@ MonoBehaviour:
   m_VolumeTrigger: {fileID: 0}
   m_VolumeFrameworkUpdateModeOption: 2
   m_RenderPostProcessing: 1
-  m_Antialiasing: 0
-  m_AntialiasingQuality: 2
+  m_Antialiasing: 2
+  m_AntialiasingQuality: 1
   m_StopNaN: 0
   m_Dithering: 0
   m_ClearDepth: 1
@@ -708,12 +708,15 @@ MonoBehaviour:
   interruptThrowMask:
     serializedVersion: 2
     m_Bits: 7168
-  interruptShootMask:
+  interruptShotMask:
     serializedVersion: 2
-    m_Bits: 2048
+    m_Bits: 2560
   triggerInterruptLayerMask:
     serializedVersion: 2
     m_Bits: 4096
+  triggerInterruptShotLayerMask:
+    serializedVersion: 2
+    m_Bits: 2048
   groundMask:
     serializedVersion: 2
     m_Bits: 1024
@@ -950,12 +953,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 133e5b808f6890b4594bcc623837a2f0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  Controller: {fileID: 1023449193}
   redirectionLineRenderer: {fileID: 442674674}
   playerToProjectileLineRenderer: {fileID: 1112185655}
   ghostIndicatorPrefab: {fileID: 8809093548387162071, guid: bb5e1b87359c58941b10ee24c96dfd70,
     type: 3}
   interruptMarkerPrefab: {fileID: 7721527794114145729, guid: 490f44ec57f8f2f4e86da6d1d96c5ef0,
     type: 3}
+  AimLaserImpactPointPrefab: {fileID: 0}
+  GunPoint: {fileID: 1112185654}
   CorrectRedirectionMaterial: {fileID: 2100000, guid: bd0e49a7aa90877489ab79b44604c6ef,
     type: 2}
   WrongRedirectionMaterial: {fileID: 2100000, guid: 9f4fd66af617a374992b20c5406126e1,
@@ -2905,7 +2911,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   visualsManager: {fileID: 442674673}
-  playerShootPoint: {fileID: 1112185654}
   projectileLauncher: {fileID: 1969380502}
   canShoot: 0
   bulletPrefab: {fileID: 4794070632160094204, guid: ed9b8951c65c97949a6df0c81497aeb9,
@@ -3117,7 +3122,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: bd0e49a7aa90877489ab79b44604c6ef, type: 2}
+  - {fileID: 2100000, guid: f2b7dd695da2fe04e992d30d3195d23e, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -3143,7 +3148,7 @@ LineRenderer:
   - {x: 0, y: 0, z: 1}
   m_Parameters:
     serializedVersion: 3
-    widthMultiplier: 0.3
+    widthMultiplier: 0.1
     widthCurve:
       serializedVersion: 2
       m_Curve:
@@ -3189,8 +3194,8 @@ LineRenderer:
       m_ColorSpace: -1
       m_NumColorKeys: 2
       m_NumAlphaKeys: 2
-    numCornerVertices: 0
-    numCapVertices: 0
+    numCornerVertices: 10
+    numCapVertices: 10
     alignment: 0
     textureMode: 0
     textureScale: {x: 1, y: 1}

@@ -34,6 +34,7 @@ public class ShootVisualsManager : MonoBehaviour
     public LineRenderer playerToProjectileLineRenderer; // Line from player to the frozen projectile
     public GameObject ghostIndicatorPrefab; // Prefab for the ghost indicator at the redirection target
     public GameObject interruptMarkerPrefab; // Prefab for the X marker at interruption points
+    public GameObject AimLaserImpactPointPrefab;
     public Transform GunPoint;
 
     // REMOVED: Direct references to RangeCircleRenderer as they will now be children of the projectile
@@ -55,6 +56,7 @@ public class ShootVisualsManager : MonoBehaviour
     // Internal instances of prefabs
     private GameObject _ghostInstance;
     private GameObject _interruptMarkerInstance;
+    private GameObject _aimLaserImpactPointInstance;
 
 
     // --- Configuration values passed from ShootController ---
@@ -106,7 +108,7 @@ public class ShootVisualsManager : MonoBehaviour
         redirectionLineRenderer.enabled = true;
 
 
-        TrajectoryData currentShootData = new TrajectoryData
+        TrajectoryData currentRedirection = new TrajectoryData
         {
             StartPosition = redirectionSpawnPoint,
             EndPosition = redirectionSpawnPoint + redirectionVelocity * (_trajectorySteps * _trajectoryStepDeltaTime) + 0.5f * Physics.gravity * (_trajectorySteps * _trajectoryStepDeltaTime) * (_trajectorySteps * _trajectoryStepDeltaTime), // Default end
@@ -126,37 +128,37 @@ public class ShootVisualsManager : MonoBehaviour
             _interruptThrowMask,
             _triggerInterruptLayerMask,
             _groundMask,
-            out currentShootData.WasInterrupted,
-            out currentShootData.InterruptPoint,
-            out currentShootData.InterruptedByTable,
-            out currentShootData.LastHit
+            out currentRedirection.WasInterrupted,
+            out currentRedirection.InterruptPoint,
+            out currentRedirection.InterruptedByTable,
+            out currentRedirection.LastHit
         );
 
-        if (currentShootData.WasInterrupted)
+        if (currentRedirection.WasInterrupted)
         {
-            currentShootData.EndPosition = currentShootData.InterruptPoint;
+            currentRedirection.EndPosition = currentRedirection.InterruptPoint;
         }
         else
         {
             // If not interrupted, the EndPosition should be the last point drawn by the line renderer
-            currentShootData.EndPosition = redirectionLineRenderer.GetPosition(redirectionLineRenderer.positionCount - 1);
+            currentRedirection.EndPosition = redirectionLineRenderer.GetPosition(redirectionLineRenderer.positionCount - 1);
         }
 
         // Determine validity for visual coloring based on interruption
-        bool currentIsRedirectionValid = !currentShootData.InterruptedByTable; // Invalid if it hit a table
+        bool currentIsRedirectionValid = !currentRedirection.InterruptedByTable; // Invalid if it hit a table
 
         // If it hit ground but not a table, it's valid
-        if (currentShootData.WasInterrupted && ((1 << currentShootData.LastHit.collider.gameObject.layer) & _groundMask) != 0 && !currentShootData.InterruptedByTable)
+        if (currentRedirection.WasInterrupted && ((1 << currentRedirection.LastHit.collider.gameObject.layer) & _groundMask) != 0 && !currentRedirection.InterruptedByTable)
         {
             currentIsRedirectionValid = true;
         }
         // If it hit something else (like a wall), it's also valid, unless it's a table
-        else if (currentShootData.WasInterrupted && !currentShootData.InterruptedByTable)
+        else if (currentRedirection.WasInterrupted && !currentRedirection.InterruptedByTable)
         {
             currentIsRedirectionValid = true;
         }
         // If no interruption, and a target point exists, it's generally valid for visuals
-        else if (!currentShootData.WasInterrupted && redirectionTargetPoint != Vector3.zero) // Check if target is meaningful
+        else if (!currentRedirection.WasInterrupted && redirectionTargetPoint != Vector3.zero) // Check if target is meaningful
         {
             currentIsRedirectionValid = true;
         }
@@ -191,15 +193,15 @@ public class ShootVisualsManager : MonoBehaviour
 
         // --- Interrupt Marker Management ---
         bool showInterruptMarker = false;
-        if (currentShootData.WasInterrupted)
+        if (currentRedirection.WasInterrupted)
         {
             // If it was interrupted by a table, always show the marker
-            if (currentShootData.InterruptedByTable)
+            if (currentRedirection.InterruptedByTable)
             {
                 showInterruptMarker = true;
             }
             // If it was interrupted, AND it was NOT by the ground layer, show the marker (i.e., a wall)
-            else if (((1 << currentShootData.LastHit.collider.gameObject.layer) & _groundMask) == 0)
+            else if (((1 << currentRedirection.LastHit.collider.gameObject.layer) & _groundMask) == 0)
             {
                 showInterruptMarker = true;
             }
@@ -216,7 +218,7 @@ public class ShootVisualsManager : MonoBehaviour
                 _interruptMarkerInstance.SetActive(true);
                 var rotator = _interruptMarkerInstance.GetComponent<RotateOnWall>();
                 if (rotator != null)
-                    rotator.SetPositionAndOrientation(currentShootData.InterruptPoint, currentShootData.LastHit.normal);
+                    rotator.SetPositionAndOrientation(currentRedirection.InterruptPoint, currentRedirection.LastHit.normal);
             }
         }
         else // Hide marker if it should not be active
@@ -224,7 +226,7 @@ public class ShootVisualsManager : MonoBehaviour
             if (_interruptMarkerInstance != null) _interruptMarkerInstance.SetActive(false);
         }
 
-        return currentShootData;
+        return currentRedirection;
     }
 
     public ShotData DrawShot()
@@ -276,6 +278,20 @@ public class ShootVisualsManager : MonoBehaviour
         {
             if (_interruptMarkerInstance != null && _interruptMarkerInstance.active) { _interruptMarkerInstance.SetActive(false); }
             SetAimingColors(true);
+        }
+        if(currentShotData.EndPosition != null)
+        {
+            if (_aimLaserImpactPointInstance == null && AimLaserImpactPointPrefab != null)
+            {
+                _aimLaserImpactPointInstance = Instantiate(AimLaserImpactPointPrefab);
+            }
+            if (_aimLaserImpactPointInstance != null)
+            {
+                _aimLaserImpactPointInstance.SetActive(true);
+                var rotator = _aimLaserImpactPointInstance.GetComponent<RotateOnWall>();
+                if (rotator != null)
+                    rotator.SetPositionAndOrientation(currentShotData.EndPosition, currentShotData.LastHit.normal);
+            }
         }
 
         return currentShotData;
@@ -337,6 +353,7 @@ public class ShootVisualsManager : MonoBehaviour
 
         if (_ghostInstance != null) _ghostInstance.SetActive(false);
         if (_interruptMarkerInstance != null) _interruptMarkerInstance.SetActive(false);
+        if (_aimLaserImpactPointInstance !=null) _aimLaserImpactPointInstance.SetActive(false);
     }
 
     /// <summary>
@@ -349,7 +366,6 @@ public class ShootVisualsManager : MonoBehaviour
         Color currentColor = isValid ? CorrectRedirectionColor : WrongRedirectionColor;
 
         if (redirectionLineRenderer != null) redirectionLineRenderer.material = currentMaterial;
-        if (playerToProjectileLineRenderer != null) playerToProjectileLineRenderer.material = currentMaterial;
 
         // Update RangeCircleRenderer materials
         if (_activeMinRedirectionCircle != null && _activeMinRedirectionCircle.lineRenderer != null)

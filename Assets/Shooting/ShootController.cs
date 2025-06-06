@@ -10,9 +10,11 @@ using System.Linq; // Required for LINQ operations like OrderBy
 /// </summary>
 public class ShootController : MonoBehaviour
 {
+    public float Delay;
     [Header("References")]
-    public ShootVisualsManager visualsManager; // Reference to the visuals manager for redirection
-    public ProjectileLauncher projectileLauncher; // Reference to the ProjectileLauncher
+    public PlayerController PlayerController;
+    public ShootVisualsManager VisualsManager; // Reference to the visuals manager for redirection
+    public ProjectileLauncher ProjectileLauncher; // Reference to the ProjectileLauncher
 
     [Header("Shooting")]
     public bool canShoot;
@@ -20,6 +22,7 @@ public class ShootController : MonoBehaviour
     private GameObject currentBullet; // Reference to bullet instance
     public Transform gunPoint;
     public LineRenderer trajectoryLineRenderer; // Your existing line renderer
+    public GameObject Fist;
 
     [Header("Redirection Settings")]
     public float redirectionAimOffset = 0.5f; // Small offset for the ghost indicator at the redirection target
@@ -81,7 +84,7 @@ public class ShootController : MonoBehaviour
     {
         cam = Camera.main;
 
-        if (visualsManager == null)
+        if (VisualsManager == null)
         {
             Debug.LogError("ShootVisualsManager reference is missing in ShootController. Please assign it in the Inspector!", this);
             enabled = false;
@@ -93,14 +96,14 @@ public class ShootController : MonoBehaviour
             enabled = false;
             return;
         }
-        if (projectileLauncher == null)
+        if (ProjectileLauncher == null)
         {
             Debug.LogError("ProjectileLauncher reference is missing in ShootController. Please assign it in the Inspector!", this);
             enabled = false;
             return;
         }
 
-        visualsManager.Initialize(
+        VisualsManager.Initialize(
             redirectionAimOffset,
             trajectorySteps,
             trajectoryStepDeltaTime,
@@ -143,10 +146,12 @@ public class ShootController : MonoBehaviour
         if (Input.GetMouseButton(1) && isAimingRedirect)
         {
             CheckForBulletInterruption();
+            PlayerController.RotatePlayerOverTime(currentTargetProjectile.gameObject, PlayerController.rotationSpeed);
+            RotateFist(currentTargetProjectile.gameObject, 360f);
 
             if (canShoot)
             {
-                visualsManager.ShowRedirectionRangeCircles(currentTargetProjectile, minRedirectionRange, maxRedirectionRange, targetRedirectionY);
+                VisualsManager.ShowRedirectionRangeCircles(currentTargetProjectile, minRedirectionRange, maxRedirectionRange, targetRedirectionY);
                 // Handle R button input for charging the redirection distance
                 if (Input.GetKeyDown(KeyCode.R))
                 {
@@ -173,7 +178,7 @@ public class ShootController : MonoBehaviour
                     if (currentTargetProjectile != null)
                     {
                         // If we just found a new projectile, show circles on it
-                        visualsManager.ShowRedirectionRangeCircles(currentTargetProjectile, minRedirectionRange, maxRedirectionRange, targetRedirectionY);
+                        VisualsManager.ShowRedirectionRangeCircles(currentTargetProjectile, minRedirectionRange, maxRedirectionRange, targetRedirectionY);
                     }
                 } // This might happen if the projectile is destroyed by external means.
 
@@ -221,7 +226,7 @@ public class ShootController : MonoBehaviour
                         Physics.gravity.magnitude,
                         out cachedRedirectionVelocity))
                     {
-                        _lastVisualShootData = visualsManager.ShowAimingVisuals(
+                        _lastVisualShootData = VisualsManager.ShowAimingVisuals(
                             currentTargetProjectile.transform.position,
                             cachedRedirectionTargetPoint,
                             cachedRedirectionVelocity,
@@ -243,7 +248,7 @@ public class ShootController : MonoBehaviour
                             Physics.gravity.magnitude,
                             out cachedRedirectionVelocity))
                         {
-                            _lastVisualShootData = visualsManager.ShowAimingVisuals(
+                            _lastVisualShootData = VisualsManager.ShowAimingVisuals(
                                currentTargetProjectile.transform.position,
                                cachedRedirectionTargetPoint,
                                cachedRedirectionVelocity,
@@ -254,7 +259,7 @@ public class ShootController : MonoBehaviour
                         }
                         else
                         {
-                            visualsManager.HideAllVisuals(); // Hide all visuals if even fallback fails
+                            VisualsManager.HideAllVisuals(); // Hide all visuals if even fallback fails
                             isRedirectionValid = false;
                             Debug.Log("ShootController: No valid arc found for redirection (even high angle fallback failed).");
                         }
@@ -262,7 +267,7 @@ public class ShootController : MonoBehaviour
                 }
                 else
                 {
-                    visualsManager.HideAllVisuals(); // Hide all visuals if no projectile found
+                    VisualsManager.HideAllVisuals(); // Hide all visuals if no projectile found
                     isRedirectionValid = false;
                     Debug.Log("ShootController: No projectile found to redirect.");
                 }
@@ -273,22 +278,26 @@ public class ShootController : MonoBehaviour
         {
                 if(canShoot && isRedirectionValid)
                 {
-                if (visualsManager.playerToProjectileLineRenderer != null) visualsManager.playerToProjectileLineRenderer.enabled = false;
+                if (VisualsManager.playerToProjectileLineRenderer != null) VisualsManager.playerToProjectileLineRenderer.enabled = false;
 
-
+                VisualsManager.StartCoroutine(VisualsManager.ShotExplosionVFX(Delay));
+                VisualsManager.ShakeCamera();
                 float holdRatio = Mathf.Clamp01(currentRButtonChargeDuration / maxChargeTime);
                     float bulletSpeed = Mathf.Lerp(10, 40, holdRatio); // tweak values
                     currentBullet = Instantiate(bulletPrefab, gunPoint.position, Quaternion.identity);
                     BulletController bulletCtrl = currentBullet.GetComponent<BulletController>();
                     bulletCtrl.controller = this;
                     bulletCtrl.speed = bulletSpeed;
+                bulletCtrl.BulletHit += VisualsManager.PlayImpactAtLocation;
 
                     // Assign the target projectile the bullet should move towards
                     bulletCtrl.targetProjectile = currentTargetProjectile.transform; // assuming currentProjectile is tracked in ShootingController 
-                }
-                else
+
+
+            }
+            else
                 {
-                    visualsManager.HideAllVisuals();
+                    VisualsManager.HideAllVisuals();
                     GameTimeManager.Instance.ResumeTime();
                     AudioManager.Instance.PlaySFX(AudioManager.Instance.CancelThrow);
                 }
@@ -346,7 +355,7 @@ public class ShootController : MonoBehaviour
         if (_projectileToRedirectOnResume != null && isRedirectionValid && canShoot)
         {
             Debug.Log($"ShootController: Redirecting projectile {_projectileToRedirectOnResume.name} via OnTimeResumed event.");
-            projectileLauncher.RedirectExistingProjectile(_projectileToRedirectOnResume, _newVelocityOnResume);
+            ProjectileLauncher.RedirectExistingProjectile(_projectileToRedirectOnResume, _newVelocityOnResume);
             _projectileToRedirectOnResume = null; // Clear after use
         }
         else
@@ -359,7 +368,7 @@ public class ShootController : MonoBehaviour
     public void OnBulletHitProjectile()
     {
         isAimingRedirect = false;
-        visualsManager.HideAllVisuals(); // Hide all visuals (including circles)
+        VisualsManager.HideAllVisuals(); // Hide all visuals (including circles)
         Debug.Log("RMB Up: Hiding visuals.");
 
         // Store projectile and velocity for event-based redirection
@@ -376,10 +385,20 @@ public class ShootController : MonoBehaviour
     {
         if (currentTargetProjectile == null || gunPoint == null)
             return;
-        _lastShotData = visualsManager.DrawShot();
+
+        _lastShotData = VisualsManager.DrawShot();
         canShoot = !_lastShotData.WasInterrupted;
     }
 
+    public void RotateFist(GameObject ObjectToLookAt, float RotationSpeed)
+    {
+            Vector3 direction = ObjectToLookAt.transform.position - transform.position;
+
+            Quaternion targetRotation = Quaternion.LookRotation(direction.normalized);
+        Rigidbody localrb = Fist.GetComponent<Rigidbody>();
+
+            localrb.rotation = Quaternion.RotateTowards(localrb.rotation, targetRotation, RotationSpeed * Time.deltaTime);
+    }
 
 
 }

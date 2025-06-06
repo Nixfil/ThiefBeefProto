@@ -1,4 +1,8 @@
+using System;
+using System.Collections;
 using UnityEngine;
+using UnityEngine.Events;
+using UnityEngine.VFX;
 
 public class BulletController : MonoBehaviour
 {
@@ -7,16 +11,28 @@ public class BulletController : MonoBehaviour
     public Rigidbody rb;
     public float speed = 20f;
 
+    public VisualEffect Impact;
+    public event Action<Vector3> BulletHit;
+
+    [Header("References for turning off")]
+    public GameObject ObjectToTurnOff;
+
     [Header("Wobble Settings")]
     public Transform visualModel; // Assign your "Model" GameObject here
     public float wobbleIntensity = 0.2f;
     public float wobbleSpeed = 5f;
     private Vector3 modelInitialLocalPos;
 
+
+    
     void Start()
     {
         if (visualModel != null)
             modelInitialLocalPos = visualModel.localPosition;
+
+        StartCoroutine(ToggleVisuals(0, false));
+        StartCoroutine(ToggleVisuals(0.2f, true));
+
     }
 
     void Update()
@@ -51,9 +67,16 @@ public class BulletController : MonoBehaviour
         if (other.transform == targetProjectile)
         {
             controller.OnBulletHitProjectile();
+            BulletHit?.Invoke(transform.position);
             Debug.Log("OnTriggerCalled");
 
             Destroy(gameObject);
+
         }
+    }
+    IEnumerator ToggleVisuals(float time, bool toggle)
+    {
+        yield return new WaitForSeconds(time);
+        ObjectToTurnOff.SetActive(toggle);
     }
 }

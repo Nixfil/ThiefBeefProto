@@ -1,5 +1,8 @@
 // FILE: ShootVisualsManager.cs (Modified - Projectile Children Circles)
+using Cinemachine;
+using System.Collections;
 using UnityEngine;
+using UnityEngine.VFX;
 
 // Define a struct to return information about the redirection trajectory's visual outcome
 public struct TrajectoryData
@@ -35,7 +38,9 @@ public class ShootVisualsManager : MonoBehaviour
     public GameObject ghostIndicatorPrefab; // Prefab for the ghost indicator at the redirection target
     public GameObject interruptMarkerPrefab; // Prefab for the X marker at interruption points
     public GameObject AimLaserImpactPointPrefab;
-    public Transform GunPoint;
+    public VisualEffect VFX_ShotExplosion;
+    public GameObject VFX_ImpactPrefab;
+    public CinemachineImpulseSource ImpulseSource;
 
     // REMOVED: Direct references to RangeCircleRenderer as they will now be children of the projectile
     // public RangeCircleRenderer MinRedirectionRangeCircle; 
@@ -243,7 +248,7 @@ public class ShootVisualsManager : MonoBehaviour
         
 
         bool isInterrupted = TrajectoryCalculator.CheckLineInterruption(
-            GunPoint.position,
+            Controller.gunPoint.position,
             targetPos,
             GameLayers.InterruptShotMask,
             out RaycastHit hitInfo
@@ -387,6 +392,32 @@ public class ShootVisualsManager : MonoBehaviour
         }
     }
 
+    public IEnumerator ShotExplosionVFX(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        VFX_ShotExplosion.Play();
+    }
+
+    public void PlayImpactAtLocation(Vector3 Location)
+    {
+        var VFX = Instantiate(VFX_ImpactPrefab);
+        VFX.transform.position = Location;
+        var VFX_Graph = VFX.GetComponent<VisualEffect>();
+        if (VFX_Graph == null)
+        { Debug.Log("VFX not found"); }
+        else 
+        { 
+        Debug.Log("VFX was found");
+    }
+        VFX_Graph.Play();
+        //Destroy(VFX);
+    }
+    
+    
+    public void ShakeCamera()
+    {
+        ImpulseSource.GenerateImpulse();
+    }
     void OnDestroy()
     {
         // Clean up instantiated objects if this manager is destroyed

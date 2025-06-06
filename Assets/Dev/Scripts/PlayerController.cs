@@ -14,6 +14,7 @@ public class PlayerController : MonoBehaviour
     }
     public DetectorScript detectorScript;
     public ThrowController throwController;
+    public ShootController shootController;
 
     public float speed; // Speed of the character
     public float rollDuration; // Total duration of the roll
@@ -80,8 +81,9 @@ public class PlayerController : MonoBehaviour
                     }
                 }
 
-         
-        break;
+               
+
+                break;
 
             case PlayerState.Running:
                 if (move == Vector3.zero)
@@ -121,7 +123,7 @@ public class PlayerController : MonoBehaviour
                 Roll();
                 break;
         }
-
+       
 
 
     }
@@ -211,4 +213,13 @@ public class PlayerController : MonoBehaviour
         return false;
     }
 
+    public void RotatePlayerOverTime(GameObject ObjectToLookAt, float RotationSpeed)
+    {
+            Vector3 direction = ObjectToLookAt.transform.position - transform.position;
+            Vector3 LeveledDirection = new Vector3(direction.x, 0, direction.z);
+            Quaternion targetRotation = Quaternion.LookRotation(LeveledDirection.normalized);
+
+
+            rb.rotation = Quaternion.RotateTowards(rb.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+    }
 }

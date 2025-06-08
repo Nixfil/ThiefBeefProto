@@ -20,7 +20,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: TrailStraight
+  m_Name: TrailPushShotLight
   m_Shader: {fileID: -6465566751694194690, guid: e246eb7ad11a522469f5783a12ab30c6,
     type: 3}
   m_Parent: {fileID: 0}

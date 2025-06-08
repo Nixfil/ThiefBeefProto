@@ -65,12 +65,12 @@ public class ThrowController : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetMouseButtonDown(0))
+        if (Input.GetKeyDown(KeyCode.E))
         {
             isAiming = true;
         }
 
-        if (Input.GetMouseButton(0) && isAiming)
+        if (Input.GetKey(KeyCode.E) && isAiming)
         {
             Vector3? target = GetMouseTargetPoint();
             if (target.HasValue)
@@ -107,7 +107,7 @@ public class ThrowController : MonoBehaviour
             }
         }
 
-        if (Input.GetMouseButtonUp(0))
+        if (Input.GetKeyUp(KeyCode.E))
         {
             isAiming = false;
 

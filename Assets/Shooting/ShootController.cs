@@ -12,13 +12,14 @@ public class ShootController : MonoBehaviour
 {
     public float Delay;
     [Header("References")]
-    public PlayerController PlayerController;
+    public PlayerController PController;
     public ShootVisualsManager VisualsManager; // Reference to the visuals manager for redirection
     public ProjectileLauncher ProjectileLauncher; // Reference to the ProjectileLauncher
 
     [Header("Shooting")]
     public bool canShoot;
-    public GameObject bulletPrefab;   // Assign in inspector
+    public GameObject PushShotPrefab;
+    public GameObject PullShotPrefab;// Assign in inspector
     private GameObject currentBullet; // Reference to bullet instance
     public Transform gunPoint;
     public LineRenderer trajectoryLineRenderer; // Your existing line renderer
@@ -51,10 +52,12 @@ public class ShootController : MonoBehaviour
     public float targetRedirectionY = 0.0f; // Forces the target Y to a specific value (e.g., ground level)
 
     private Camera cam;
-    private bool isAimingRedirect;
+    private bool isAimingPushShot;
+    private bool isAimingPullShot;
     public Projectile currentTargetProjectile; // The projectile currently being aimed at at for redirection (exposed for debugging)
     private Vector3 cachedRedirectionVelocity; // Stores the calculated velocity for the redirected projectile
-    private Vector3 cachedRedirectionTargetPoint; // Stores the calculated target point for the redirected arc
+    private Vector3 cachedPushShot; // Stores the calculated target point for the redirected arc
+    private Vector3 cachedPullShot;
     private bool isRedirectionValid = false; // Is the current redirection valid?
 
     private float rButtonChargeStartTime; // Time when R button was pressed down
@@ -128,7 +131,7 @@ public class ShootController : MonoBehaviour
             currentTargetProjectile = FindClosestActiveProjectile();
             if (currentTargetProjectile != null)
             {
-                isAimingRedirect = true;
+                isAimingPushShot = true;
                 GameTimeManager.Instance.FreezeTime(); // Freeze time by pausing rigidbodies
                 Debug.Log("RMB Down: Attempting to freeze rigidbodies and find projectile. Redirection aiming active.");
 
@@ -143,10 +146,10 @@ public class ShootController : MonoBehaviour
         }
 
         // While aiming for redirection (RMB Held)
-        if (Input.GetMouseButton(1) && isAimingRedirect)
+        if (Input.GetMouseButton(1) && isAimingPushShot)
         {
             CheckForBulletInterruption();
-            PlayerController.RotatePlayerOverTime(currentTargetProjectile.gameObject, PlayerController.rotationSpeed);
+            PController.RotatePlayerOverTime(currentTargetProjectile.gameObject, PController.rotationSpeed);
             RotateFist(currentTargetProjectile.gameObject, 360f);
 
             if (canShoot)
@@ -198,7 +201,8 @@ public class ShootController : MonoBehaviour
                     }
 
                     // Calculate the horizontal direction away from the player
-                    Vector3 horizontalDirectionAwayFromPlayer = currentTargetProjectile.transform.position - gunPoint.position;
+                    var playerPosition = PController.capsuleCollider.transform.position;
+                    Vector3 horizontalDirectionAwayFromPlayer = currentTargetProjectile.transform.position - playerPosition;
                     horizontalDirectionAwayFromPlayer.y = 0; // Zero out the Y component to make it purely horizontal
 
                     // Handle case where projectile is directly above player (horizontal distance is zero)
@@ -211,15 +215,15 @@ public class ShootController : MonoBehaviour
                     horizontalDirectionAwayFromPlayer.Normalize();
 
                     // Set the target point: current horizontal position + horizontal distance, and a fixed Y
-                    cachedRedirectionTargetPoint = currentTargetProjectile.transform.position + horizontalDirectionAwayFromPlayer * currentRedirectionDistance;
-                    cachedRedirectionTargetPoint.y = targetRedirectionY; // Force the target Y to a specific value
+                    cachedPushShot = currentTargetProjectile.transform.position + horizontalDirectionAwayFromPlayer * currentRedirectionDistance;
+                    cachedPushShot.y = targetRedirectionY; // Force the target Y to a specific value
 
-                    Debug.Log($"ShootController: Redirection target point calculated: {cachedRedirectionTargetPoint}");
+                    Debug.Log($"ShootController: Redirection target point calculated: {cachedPushShot}");
 
                     // Use ComputeVelocityArc for calculated angle, with a fallback
                     if (TrajectoryCalculator.ComputeVelocityArc(
                         currentTargetProjectile.transform.position, // Start from the projectile's frozen position
-                        cachedRedirectionTargetPoint,
+                        cachedPushShot,
                         minRedirectionLaunchAngle, // Use min angle for calculated arc
                         maxRedirectionLaunchAngle, // Use max angle for calculated arc
                         redirectionAngleByDistance, // Use curve for calculated arc
@@ -228,7 +232,7 @@ public class ShootController : MonoBehaviour
                     {
                         _lastVisualShootData = VisualsManager.ShowAimingVisuals(
                             currentTargetProjectile.transform.position,
-                            cachedRedirectionTargetPoint,
+                            cachedPushShot,
                             cachedRedirectionVelocity,
                             gunPoint.position
                         );
@@ -241,7 +245,7 @@ public class ShootController : MonoBehaviour
                         Debug.LogWarning("ShootController: ComputeVelocityArc failed, attempting high angle fallback.");
                         if (TrajectoryCalculator.ComputeVelocityArc(
                             currentTargetProjectile.transform.position,
-                            cachedRedirectionTargetPoint,
+                            cachedPushShot,
                             70f, // Fallback min angle (adjusted slightly to 70 for wider range)
                             89f, // Fallback max angle
                             null, // No curve for fallback, just straight lerp
@@ -250,7 +254,7 @@ public class ShootController : MonoBehaviour
                         {
                             _lastVisualShootData = VisualsManager.ShowAimingVisuals(
                                currentTargetProjectile.transform.position,
-                               cachedRedirectionTargetPoint,
+                               cachedPushShot,
                                cachedRedirectionVelocity,
                                gunPoint.position
                            );
@@ -284,11 +288,11 @@ public class ShootController : MonoBehaviour
                 VisualsManager.ShakeCamera();
                 float holdRatio = Mathf.Clamp01(currentRButtonChargeDuration / maxChargeTime);
                     float bulletSpeed = Mathf.Lerp(10, 40, holdRatio); // tweak values
-                    currentBullet = Instantiate(bulletPrefab, gunPoint.position, Quaternion.identity);
+                    currentBullet = Instantiate(PushShotPrefab, gunPoint.position, Quaternion.identity);
                     BulletController bulletCtrl = currentBullet.GetComponent<BulletController>();
                     bulletCtrl.controller = this;
                     bulletCtrl.speed = bulletSpeed;
-                bulletCtrl.BulletHit += VisualsManager.PlayImpactAtLocation;
+                bulletCtrl.BulletHit += VisualsManager.PlayImpactVFXFromBullet;
 
                     // Assign the target projectile the bullet should move towards
                     bulletCtrl.targetProjectile = currentTargetProjectile.transform; // assuming currentProjectile is tracked in ShootingController 
@@ -304,6 +308,189 @@ public class ShootController : MonoBehaviour
             
         }
 
+        // Start aiming for PullShot (LMB Down)
+        if (Input.GetMouseButtonDown(0)) // Right Mouse Button
+        {
+            // Find the closest active projectile in the air immediately
+            currentTargetProjectile = FindClosestActiveProjectile();
+            if (currentTargetProjectile != null)
+            {
+                isAimingPullShot = true;
+                GameTimeManager.Instance.FreezeTime(); // Freeze time by pausing rigidbodies
+
+                // Initialize charge duration to min when RMB is first pressed
+                currentRButtonChargeDuration = minChargeTime;
+
+            }
+
+
+            // Show initial range circles and ghost at min range
+
+        }
+
+        // While aiming for PullShot (LMB Held)
+        if (Input.GetMouseButton(0) && isAimingPullShot)
+        {
+            CheckForBulletInterruption();
+            PController.RotatePlayerOverTime(currentTargetProjectile.gameObject, PController.rotationSpeed);
+            RotateFist(currentTargetProjectile.gameObject, 360f);
+
+            if (canShoot)
+            {
+                VisualsManager.ShowRedirectionRangeCircles(currentTargetProjectile, minRedirectionRange, maxRedirectionRange, targetRedirectionY);
+                // Handle R button input for charging the redirection distance
+                if (Input.GetKeyDown(KeyCode.R))
+                {
+                    rButtonChargeStartTime = Time.time; // Start charging
+                    Debug.Log("R Key Down: Starting charge for redirection distance.");
+                }
+                if (Input.GetKey(KeyCode.R))
+                {
+                    currentRButtonChargeDuration = Time.time - rButtonChargeStartTime;
+                    currentRButtonChargeDuration = Mathf.Clamp(currentRButtonChargeDuration, minChargeTime, maxChargeTime);
+                }
+                // If R is not held, currentRButtonChargeDuration remains at its last value or minChargeTime
+
+                // Map charge duration to redirection range
+                float chargeProgress = Mathf.InverseLerp(minChargeTime, maxChargeTime, currentRButtonChargeDuration);
+                float currentRedirectionDistance = Mathf.Lerp(minRedirectionRange, maxRedirectionRange, chargeProgress);
+
+
+                // If currentTargetProjectile became null (e.g., destroyed during aiming), find it again.      
+                if (currentTargetProjectile == null)
+                {
+                    currentTargetProjectile = FindClosestActiveProjectile();
+                    if (currentTargetProjectile != null)
+                    {
+                        // If we just found a new projectile, show circles on it
+                        VisualsManager.ShowRedirectionRangeCircles(currentTargetProjectile, minRedirectionRange, maxRedirectionRange, targetRedirectionY);
+                    }
+                } // This might happen if the projectile is destroyed by external means.
+
+
+
+                if (currentTargetProjectile != null)
+                {
+                    Rigidbody targetRb = currentTargetProjectile.GetComponent<Rigidbody>();
+
+                    if (targetRb != null)
+                    {
+                        Debug.Log($"ShootController: Found target projectile {currentTargetProjectile.name}. Its kinematic state is: {targetRb.isKinematic}");
+                    } //Check for RigidBody
+                    else
+                    {
+                        Debug.LogWarning($"ShootController: Found target projectile {currentTargetProjectile.name} but it has no Rigidbody!");
+                    }
+
+                    // Get the horizontal direction from the projectile toward the player
+                    var playerPosition = PController.capsuleCollider.transform.position;
+                    Vector3 horizontalDirectionToPlayer = gunPoint.position - currentTargetProjectile.transform.position;
+                    horizontalDirectionToPlayer.y = 0f; // Flatten to horizontal plane
+
+                    // Handle case where player is directly above or below the projectile
+                    if (horizontalDirectionToPlayer.sqrMagnitude < 0.000001f)
+                    {
+                        // Default to camera's backward direction if no horizontal offset
+                        horizontalDirectionToPlayer = cam.transform.forward;
+                        horizontalDirectionToPlayer.y = 0f;
+                    }
+
+                    horizontalDirectionToPlayer.Normalize();
+
+                    // Compute a point in that direction at a fixed horizontal distance
+                    cachedPullShot = currentTargetProjectile.transform.position + horizontalDirectionToPlayer * currentRedirectionDistance;
+                    cachedPullShot.y = targetRedirectionY; // Set fixed Y level
+
+
+
+
+                    // Use ComputeVelocityArc for calculated angle, with a fallback
+                    if (TrajectoryCalculator.ComputeVelocityArc(
+                        currentTargetProjectile.transform.position, // Start from the projectile's frozen position
+                        cachedPullShot,
+                        minRedirectionLaunchAngle, // Use min angle for calculated arc
+                        maxRedirectionLaunchAngle, // Use max angle for calculated arc
+                        redirectionAngleByDistance, // Use curve for calculated arc
+                        Physics.gravity.magnitude,
+                        out cachedRedirectionVelocity))
+                    {
+                        _lastVisualShootData = VisualsManager.ShowAimingVisuals(
+                            currentTargetProjectile.transform.position,
+                            cachedPullShot,
+                            cachedRedirectionVelocity,
+                            gunPoint.position
+                        );
+                        isRedirectionValid = !_lastVisualShootData.InterruptedByTable;
+                        Debug.Log($"ShootController: Redirection trajectory computed. Is Valid: {isRedirectionValid}");
+                    }
+                    else
+                    {
+                        // If ComputeVelocityArc fails with the curve, try a very high angle as a fallback to ensure a solution if possible
+                        Debug.LogWarning("ShootController: ComputeVelocityArc failed, attempting high angle fallback.");
+                        if (TrajectoryCalculator.ComputeVelocityArc(
+                            currentTargetProjectile.transform.position,
+                            cachedPullShot,
+                            70f, // Fallback min angle (adjusted slightly to 70 for wider range)
+                            89f, // Fallback max angle
+                            null, // No curve for fallback, just straight lerp
+                            Physics.gravity.magnitude,
+                            out cachedRedirectionVelocity))
+                        {
+                            _lastVisualShootData = VisualsManager.ShowAimingVisuals(
+                               currentTargetProjectile.transform.position,
+                               cachedPullShot,
+                               cachedRedirectionVelocity,
+                               gunPoint.position
+                           );
+                            isRedirectionValid = !_lastVisualShootData.InterruptedByTable;
+                            Debug.Log($"ShootController: Redirection trajectory computed with high angle fallback. Is Valid: {isRedirectionValid}");
+                        }
+                        else
+                        {
+                            VisualsManager.HideAllVisuals(); // Hide all visuals if even fallback fails
+                            isRedirectionValid = false;
+                            Debug.Log("ShootController: No valid arc found for redirection (even high angle fallback failed).");
+                        }
+                    }
+                }
+                else
+                {
+                    VisualsManager.HideAllVisuals(); // Hide all visuals if no projectile found
+                    isRedirectionValid = false;
+                    Debug.Log("ShootController: No projectile found to redirect.");
+                }
+            }
+        }
+
+        if (Input.GetMouseButtonUp(0))
+        {
+            if (canShoot && isRedirectionValid)
+            {
+                if (VisualsManager.playerToProjectileLineRenderer != null) VisualsManager.playerToProjectileLineRenderer.enabled = false;
+
+                VisualsManager.StartCoroutine(VisualsManager.ShotExplosionVFX(Delay));
+                VisualsManager.ShakeCamera();
+                float holdRatio = Mathf.Clamp01(currentRButtonChargeDuration / maxChargeTime);
+                float bulletSpeed = Mathf.Lerp(10, 40, holdRatio); // tweak values
+                currentBullet = Instantiate(PullShotPrefab, gunPoint.position, Quaternion.identity);
+                BulletController bulletCtrl = currentBullet.GetComponent<BulletController>();
+                bulletCtrl.controller = this;
+                bulletCtrl.speed = bulletSpeed;
+                bulletCtrl.BulletHit += VisualsManager.PlayImpactVFXFromBullet;
+
+                // Assign the target projectile the bullet should move towards
+                bulletCtrl.targetProjectile = currentTargetProjectile.transform; // assuming currentProjectile is tracked in ShootingController 
+
+
+            }
+            else
+            {
+                VisualsManager.HideAllVisuals();
+                GameTimeManager.Instance.ResumeTime();
+                AudioManager.Instance.PlaySFX(AudioManager.Instance.CancelThrow);
+            }
+
+        }
     }
 
     /// <summary>
@@ -367,7 +554,7 @@ public class ShootController : MonoBehaviour
     } //Event for handling time resume
     public void OnBulletHitProjectile()
     {
-        isAimingRedirect = false;
+        isAimingPushShot = false;
         VisualsManager.HideAllVisuals(); // Hide all visuals (including circles)
         Debug.Log("RMB Up: Hiding visuals.");
 

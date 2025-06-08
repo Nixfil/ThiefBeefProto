@@ -28,7 +28,7 @@ public class PlayerController : MonoBehaviour
 
 
     [SerializeField] private PlayerState currentState;
-    [SerializeField] private CapsuleCollider capsuleCollider;
+    public CapsuleCollider capsuleCollider;
 
     private Rigidbody rb;
     private float rollTime;

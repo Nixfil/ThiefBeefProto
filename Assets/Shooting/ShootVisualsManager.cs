@@ -30,6 +30,7 @@ public struct ShotData
 public class ShootVisualsManager : MonoBehaviour
 {
     [Header("Controller")]
+    public PlayerController PController;
     public ShootController Controller;
 
     [Header("Visual References")]
@@ -398,9 +399,15 @@ public class ShootVisualsManager : MonoBehaviour
         VFX_ShotExplosion.Play();
     }
 
-    public void PlayImpactAtLocation(Vector3 Location)
+    public void PlayImpactVFXFromBullet(GameObject bullet)
     {
-        var VFX = Instantiate(VFX_ImpactPrefab);
+        var Impact = bullet.GetComponent<BulletController>().Impact;
+        Impact.gameObject.transform.SetParent(null);
+        Impact.enabled = true;
+        QoLScript.DestroyGameObjectIntime(Impact.gameObject, 5f);
+
+
+       /* var VFX = Instantiate(VFX_ImpactPrefab);
         VFX.transform.position = Location;
         var VFX_Graph = VFX.GetComponent<VisualEffect>();
         if (VFX_Graph == null)
@@ -409,7 +416,7 @@ public class ShootVisualsManager : MonoBehaviour
         { 
         Debug.Log("VFX was found");
     }
-        VFX_Graph.Play();
+        VFX_Graph.Play();*/
         //Destroy(VFX);
     }
     

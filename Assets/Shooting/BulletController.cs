@@ -10,9 +10,10 @@ public class BulletController : MonoBehaviour
     public Transform targetProjectile;
     public Rigidbody rb;
     public float speed = 20f;
+    public CapsuleCollider capsuleCollider;
 
     public VisualEffect Impact;
-    public event Action<Vector3> BulletHit;
+    public event Action<GameObject> BulletHit;
 
     [Header("References for turning off")]
     public GameObject ObjectToTurnOff;
@@ -67,10 +68,11 @@ public class BulletController : MonoBehaviour
         if (other.transform == targetProjectile)
         {
             controller.OnBulletHitProjectile();
-            BulletHit?.Invoke(transform.position);
+            BulletHit?.Invoke(this.gameObject);
             Debug.Log("OnTriggerCalled");
-
-            Destroy(gameObject);
+            ToggleVisuals(0f, false); 
+            capsuleCollider.enabled = false;
+            QoLScript.DestroyGameObjectIntime(this.gameObject, 5f);
 
         }
     }
@@ -78,5 +80,11 @@ public class BulletController : MonoBehaviour
     {
         yield return new WaitForSeconds(time);
         ObjectToTurnOff.SetActive(toggle);
+    }
+
+    IEnumerator SelfDestruct(float time)
+    {
+        yield return new WaitForSeconds(time);
+        Destroy(gameObject);
     }
 }

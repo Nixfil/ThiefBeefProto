@@ -1,48 +1,29 @@
 using UnityEngine;
 
-[RequireComponent(typeof(LineRenderer))]
 public class RangeCircleRenderer : MonoBehaviour
 {
     
-    public int segments = 60;
     public float radius;
-    public LineRenderer lineRenderer;
+    public MeshRenderer Renderer;
 
     void Awake()
     {
-        lineRenderer = GetComponent<LineRenderer>();
+
+        /*lineRenderer = GetComponent<LineRenderer>();
         lineRenderer.loop = true;
-        lineRenderer.positionCount = segments;
-    }
-    private void Start()
-    {
-        DrawCircle();
-    }
-
-    public void DrawCircle()
-    {
-        float angleStep = 360f / segments;
-
-        for (int i = 0; i < segments; i++)
-        {
-            float angle = Mathf.Deg2Rad * angleStep * i;
-            float x = Mathf.Cos(angle) * radius;
-            float z = Mathf.Sin(angle) * radius;
-            Vector3 point = new Vector3(x, 0.01f, z); // Slightly above ground
-            lineRenderer.SetPosition(i, point);
-        }
+        lineRenderer.positionCount = segments;*/
     }
 
     // Optional: Call this if you want to update radius dynamically
     public void SetRadius(float newRadius)
     {
-        radius = newRadius;
-        DrawCircle();
+        radius = newRadius/4.3f;
+        transform.localScale = new Vector3(radius, radius, radius); 
     }
 
     public void ToggleCircle(bool toggle)
     {
-        lineRenderer.enabled = toggle;
+        Renderer.enabled = toggle;
     }
     public void SetCenter(Vector3 center)
     {

@@ -31,8 +31,8 @@ public class BulletController : MonoBehaviour
         if (visualModel != null)
             modelInitialLocalPos = visualModel.localPosition;
 
-        StartCoroutine(ToggleVisuals(0, false));
-        StartCoroutine(ToggleVisuals(0.2f, true));
+        //StartCoroutine(ToggleVisuals(0, false));
+       // StartCoroutine(ToggleVisuals(0.2f, true));
 
     }
 

@@ -16,10 +16,10 @@ public class ThrowVisualsManager : MonoBehaviour
 {
     [Header("Visual References")]
     public LineRenderer lineRenderer;
-    public RangeCircleRenderer MinThrowRangeCircle;
-    public RangeCircleRenderer MaxThrowRangeCircle;
+    public GameObject RangeCirclePrefab;
     public GameObject ghostIndicatorPrefab;
     public GameObject interruptMarkerPrefab;
+    public GameObject Visuals;
 
     [Header("Visual Materials & Colors")]
     public Material CorrectThrowMaterial;
@@ -28,6 +28,7 @@ public class ThrowVisualsManager : MonoBehaviour
     public Color WrongThrowColor;
 
     // Internal instances of prefabs
+    private RangeCircleRenderer _rangeCircleInstance;
     private GameObject _ghostInstance;
     private GameObject _interruptMarkerInstance;
 
@@ -41,6 +42,12 @@ public class ThrowVisualsManager : MonoBehaviour
     private LayerMask _triggerInterruptLayerMask;
     private LayerMask _groundMask;
 
+    private void Awake()
+    {
+        Visuals = new GameObject("ThrowingVisuals");
+        var newCircle = Instantiate(RangeCirclePrefab, Visuals.transform);
+        _rangeCircleInstance = newCircle.GetComponent<RangeCircleRenderer>();
+    }
 
     // Call this from ThrowController's Start()
     public void Initialize(float minRange, float maxRange, float aimOffset, int trajectorySteps, float trajectoryStepDeltaTime, LayerMask interruptMask, LayerMask triggerMask, LayerMask groundMask)
@@ -54,17 +61,15 @@ public class ThrowVisualsManager : MonoBehaviour
         _triggerInterruptLayerMask = triggerMask;
         _groundMask = groundMask;
 
-        if (lineRenderer == null || MinThrowRangeCircle == null || MaxThrowRangeCircle == null)
+        if (lineRenderer == null || RangeCirclePrefab == null)
         {
             Debug.LogError("Essential visual references are missing in ThrowVisualsManager! Please assign them in the Inspector.", this);
             enabled = false;
             return;
         }
 
-        MinThrowRangeCircle.SetRadius(_minThrowRange - 2.55f);
-        MaxThrowRangeCircle.SetRadius(_maxThrowRange + 2);
-        MinThrowRangeCircle.ToggleCircle(false);
-        MaxThrowRangeCircle.ToggleCircle(false);
+        _rangeCircleInstance.SetRadius(_maxThrowRange-1);
+        _rangeCircleInstance.ToggleCircle(false);
         lineRenderer.enabled = false;
     }
 
@@ -80,8 +85,8 @@ public class ThrowVisualsManager : MonoBehaviour
     {
         // Ensure line renderer and range circles are active when visuals are shown
         lineRenderer.enabled = true;
-        MinThrowRangeCircle.ToggleCircle(true);
-        MaxThrowRangeCircle.ToggleCircle(true);
+        _rangeCircleInstance.ToggleCircle(true);
+        _rangeCircleInstance.SetCenter(transform.position);
 
         ThrowData currentThrowData = new ThrowData
         {
@@ -214,8 +219,7 @@ public class ThrowVisualsManager : MonoBehaviour
     public void HideAllVisuals()
     {
         lineRenderer.enabled = false;
-        MinThrowRangeCircle.ToggleCircle(false);
-        MaxThrowRangeCircle.ToggleCircle(false);
+        _rangeCircleInstance.ToggleCircle(false);
         if (_ghostInstance != null) _ghostInstance.SetActive(false);
         if (_interruptMarkerInstance != null) _interruptMarkerInstance.SetActive(false);
     }
@@ -229,11 +233,6 @@ public class ThrowVisualsManager : MonoBehaviour
         Material currentMaterial = isValid ? CorrectThrowMaterial : WrongThrowMaterial;
         Color currentColor = isValid ? CorrectThrowColor : WrongThrowColor;
 
-        if (lineRenderer != null) lineRenderer.material = currentMaterial;
-        if (MinThrowRangeCircle != null && MinThrowRangeCircle.lineRenderer != null)
-            MinThrowRangeCircle.lineRenderer.material = currentMaterial;
-        if (MaxThrowRangeCircle != null && MaxThrowRangeCircle.lineRenderer != null)
-            MaxThrowRangeCircle.lineRenderer.material = currentMaterial;
 
         if (_ghostInstance != null)
         {

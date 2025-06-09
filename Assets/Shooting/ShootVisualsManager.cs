@@ -1,5 +1,6 @@
 // FILE: ShootVisualsManager.cs (Modified - Projectile Children Circles)
 using Cinemachine;
+using DG.Tweening;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.VFX;
@@ -22,6 +23,11 @@ public struct ShotData
     public bool WasInterrupted;
     public RaycastHit LastHit;
 }
+public enum ShotType
+{
+    Push,
+    Pull
+}
 
 /// <summary>
 /// Manages the visual feedback for the projectile redirection mechanic.
@@ -39,8 +45,10 @@ public class ShootVisualsManager : MonoBehaviour
     public GameObject ghostIndicatorPrefab; // Prefab for the ghost indicator at the redirection target
     public GameObject interruptMarkerPrefab; // Prefab for the X marker at interruption points
     public GameObject AimLaserImpactPointPrefab;
-    public VisualEffect VFX_ShotExplosion;
-    public GameObject VFX_ImpactPrefab;
+    public GameObject RangeCirclePullPrefab;
+    public GameObject RangeCirclePushPrefab;
+    public VisualEffect VFX_MuzzleFlashPullShot;
+    public VisualEffect VFX_MuzzleFlashPushShot;
     public CinemachineImpulseSource ImpulseSource;
 
     // REMOVED: Direct references to RangeCircleRenderer as they will now be children of the projectile
@@ -48,10 +56,12 @@ public class ShootVisualsManager : MonoBehaviour
     // public RangeCircleRenderer MaxRedirectionRangeCircle; 
 
     [Header("Visual Materials & Colors")]
-    public Material CorrectRedirectionMaterial;
-    public Material WrongRedirectionMaterial;
-    public Color CorrectRedirectionColor;
-    public Color WrongRedirectionColor;
+    public Material Mat_PushGlow;
+    public Material Mat_PullGlow;
+    public Material Mat_Invalid;
+    public Color Col_Push;
+    public Color Col_Pull;
+    public Color Col_Invalid;
     // RangeCircleMaterial and RangeCircleColor are now managed by RangeCircleRenderer itself
 
     [Tooltip("Name of the child GameObject on the Projectile prefab containing the Min RangeCircleRenderer.")]
@@ -60,9 +70,13 @@ public class ShootVisualsManager : MonoBehaviour
     public string maxRedirectionCircleName = "MaxRedirectionRangeCircleVisual"; // Name to find child by
 
     // Internal instances of prefabs
+    private GameObject Visuals;
     private GameObject _ghostInstance;
     private GameObject _interruptMarkerInstance;
     private GameObject _aimLaserImpactPointInstance;
+
+    private RangeCircleRenderer _RangeCirclePushInstance;
+    private RangeCircleRenderer _RangeCirclePullInstance;
 
 
     // --- Configuration values passed from ShootController ---
@@ -73,10 +87,17 @@ public class ShootVisualsManager : MonoBehaviour
     private LayerMask _triggerInterruptLayerMask;
     private LayerMask _groundMask;
 
-    // Store references to the currently active redirection circles
-    private RangeCircleRenderer _activeMinRedirectionCircle;
-    private RangeCircleRenderer _activeMaxRedirectionCircle;
 
+    public void Start()
+    {
+        Visuals = new GameObject("ShootingVisuals");
+        var pullCircle = Instantiate(RangeCirclePullPrefab, Visuals.transform);
+        _RangeCirclePullInstance=pullCircle.GetComponent<RangeCircleRenderer>();
+        _RangeCirclePullInstance.ToggleCircle(false);
+        var pushCircle = Instantiate(RangeCirclePushPrefab, Visuals.transform);
+        _RangeCirclePushInstance = pushCircle.GetComponent<RangeCircleRenderer>();
+        _RangeCirclePushInstance.ToggleCircle(false);
+    }
 
     // Call this from ShootController's Start()
     public void Initialize(float aimOffset, int trajectorySteps, float trajectoryStepDeltaTime, LayerMask interruptMask, LayerMask triggerMask, LayerMask groundMask)
@@ -108,6 +129,8 @@ public class ShootVisualsManager : MonoBehaviour
     /// <param name="redirectionVelocity">The calculated initial velocity for the redirected projectile.</param>
     /// <param name="playerOriginPoint">The player's position (for the line to the frozen projectile).</param>
     /// <returns>A ShootData struct containing details about the trajectory's path and interruptions.</returns>
+    /// 
+
     public TrajectoryData ShowAimingVisuals(Vector3 redirectionSpawnPoint, Vector3 redirectionTargetPoint, Vector3 redirectionVelocity, Vector3 playerOriginPoint)
     {
         // Ensure line renderers are active when visuals are shown
@@ -171,10 +194,10 @@ public class ShootVisualsManager : MonoBehaviour
         else // No valid target or other invalid conditions
         {
             currentIsRedirectionValid = false;
+            SetAimingColors(Mat_Invalid, Col_Invalid);
         }
 
         // Update colors for all visuals
-        SetAimingColors(currentIsRedirectionValid);
 
 
         // --- Ghost Indicator Management ---
@@ -278,12 +301,13 @@ public class ShootVisualsManager : MonoBehaviour
                 if (rotator != null)
                     rotator.SetPositionAndOrientation(currentShotData.EndPosition, currentShotData.LastHit.normal);
             }
-            SetAimingColors(false);
+            SetAimingColors(Mat_Invalid, Col_Invalid);
         }
         else
         {
             if (_interruptMarkerInstance != null && _interruptMarkerInstance.active) { _interruptMarkerInstance.SetActive(false); }
-            SetAimingColors(true);
+            if (Controller.isAimingPullShot) SetAimingColors(Mat_PullGlow, Col_Pull);
+            if (Controller.isAimingPushShot) SetAimingColors(Mat_PushGlow, Col_Push);
         }
         if(currentShotData.EndPosition != null)
         {
@@ -304,44 +328,31 @@ public class ShootVisualsManager : MonoBehaviour
        
 
     }
-    public void ShowRedirectionRangeCircles(Projectile targetProjectile, float minRange, float maxRange, float yLevel)
+    public void ShowRedirectionRangeCircles(Projectile targetProjectile, float minRange, float maxRange, float yLevel, ShotType shotType)
     {
         if (targetProjectile == null)
         {
             Debug.LogWarning("ShowRedirectionRangeCircles called with null targetProjectile.");
             return;
         }
+        Vector3 newPosition = new Vector3(targetProjectile.transform.position.x, yLevel, targetProjectile.transform.position.z);
 
-        // Find the RangeCircleRenderer components as children of the targetProjectile
-        Transform minCircleTransform = targetProjectile.transform.Find(minRedirectionCircleName);
-        Transform maxCircleTransform = targetProjectile.transform.Find(maxRedirectionCircleName);
-
-        _activeMinRedirectionCircle = (minCircleTransform != null) ? minCircleTransform.GetComponent<RangeCircleRenderer>() : null;
-        _activeMaxRedirectionCircle = (maxCircleTransform != null) ? maxCircleTransform.GetComponent<RangeCircleRenderer>() : null;
-
-        if (_activeMinRedirectionCircle == null)
-        {
-            Debug.LogError($"ShootVisualsManager: Min redirection circle '{minRedirectionCircleName}' not found on projectile '{targetProjectile.name}' or missing RangeCircleRenderer!");
-        }
-        if (_activeMaxRedirectionCircle == null)
-        {
-            Debug.LogError($"ShootVisualsManager: Max redirection circle '{maxRedirectionCircleName}' not found on projectile '{targetProjectile.name}' or missing RangeCircleRenderer!");
-        }
-
-        // Set radius and position for the circles
-        if (_activeMinRedirectionCircle != null)
-        {
-            _activeMinRedirectionCircle.SetRadius(minRange - 2);
-            // Set the local position relative to the projectile, at the desired Y-level
-            _activeMinRedirectionCircle.transform.localPosition = new Vector3(0f, yLevel - targetProjectile.transform.position.y, 0f);
-            _activeMinRedirectionCircle.ToggleCircle(true);
-        }
-        if (_activeMaxRedirectionCircle != null)
-        {
-            _activeMaxRedirectionCircle.SetRadius(maxRange +2);
-            // Set the local position relative to the projectile, at the desired Y-level
-            _activeMaxRedirectionCircle.transform.localPosition = new Vector3(0f, yLevel - targetProjectile.transform.position.y, 0f);
-            _activeMaxRedirectionCircle.ToggleCircle(true);
+        switch (shotType)
+            {
+            case ShotType.Pull:
+            {
+                    _RangeCirclePullInstance.ToggleCircle(true);
+                    _RangeCirclePullInstance.SetRadius(maxRange);
+                    _RangeCirclePullInstance.SetCenter(newPosition);
+                    break;
+            }
+            case ShotType.Push:
+                {
+                    _RangeCirclePushInstance.ToggleCircle(true);
+                    _RangeCirclePushInstance.SetRadius(maxRange);
+                    _RangeCirclePushInstance.SetCenter(newPosition);
+                    break;
+                }
         }
     }
 
@@ -354,8 +365,8 @@ public class ShootVisualsManager : MonoBehaviour
         playerToProjectileLineRenderer.enabled = false;
 
         // Hide range circles
-        if (_activeMinRedirectionCircle != null) _activeMinRedirectionCircle.ToggleCircle(false);
-        if (_activeMaxRedirectionCircle != null) _activeMaxRedirectionCircle.ToggleCircle(false);
+        if (_RangeCirclePullInstance != null) _RangeCirclePullInstance.ToggleCircle(false);
+        if (_RangeCirclePushInstance != null) _RangeCirclePushInstance.ToggleCircle(false);
 
         if (_ghostInstance != null) _ghostInstance.SetActive(false);
         if (_interruptMarkerInstance != null) _interruptMarkerInstance.SetActive(false);
@@ -366,37 +377,39 @@ public class ShootVisualsManager : MonoBehaviour
     /// Sets the material and color of all aiming visuals based on redirection validity.
     /// </summary>
     /// <param name="isValid">True for correct (green) materials/colors, false for wrong (red).</param>
-    private void SetAimingColors(bool isValid)
+    public void SetAimingColors(Material Mat, Color Col)
     {
-        Material currentMaterial = isValid ? CorrectRedirectionMaterial : WrongRedirectionMaterial;
-        Color currentColor = isValid ? CorrectRedirectionColor : WrongRedirectionColor;
-
-        if (redirectionLineRenderer != null) redirectionLineRenderer.material = currentMaterial;
-
-        // Update RangeCircleRenderer materials
-        if (_activeMinRedirectionCircle != null && _activeMinRedirectionCircle.lineRenderer != null)
-            _activeMinRedirectionCircle.lineRenderer.material = currentMaterial;
-        if (_activeMaxRedirectionCircle != null && _activeMaxRedirectionCircle.lineRenderer != null)
-            _activeMaxRedirectionCircle.lineRenderer.material = currentMaterial;
-
-        if (_ghostInstance != null)
+        Debug.Log(Mat + " " + Col);
+        if (Mat != null)
         {
-            var sr = _ghostInstance.GetComponent<SpriteRenderer>();
-            if (sr != null) sr.color = currentColor;
+
+            if (redirectionLineRenderer != null) redirectionLineRenderer.material = Mat;
+
+
         }
-
-        if (_interruptMarkerInstance != null)
+        if (Col != null)
         {
-            var rotator = _interruptMarkerInstance.GetComponent<RotateOnWall>();
-            if (rotator != null && rotator.Sprite != null)
-                rotator.Sprite.color = currentColor;
+            if (_ghostInstance != null)
+            {
+                var sr = _ghostInstance.GetComponent<SpriteRenderer>();
+                if (sr != null) sr.color = Col;
+            }
+
+            if (_interruptMarkerInstance != null)
+            {
+                var rotator = _interruptMarkerInstance.GetComponent<RotateOnWall>();
+                if (rotator != null && rotator.Sprite != null)
+                    rotator.Sprite.color = Col;
+            }
         }
     }
 
-    public IEnumerator ShotExplosionVFX(float delay)
+    public IEnumerator PlayMuzzleFlash(float delay, VisualEffect MuzzleFlash)
     {
         yield return new WaitForSeconds(delay);
-        VFX_ShotExplosion.Play();
+        MuzzleFlash.enabled = true;
+        yield return new WaitForSeconds(3f);
+        if(MuzzleFlash.aliveParticleCount == 0) MuzzleFlash.enabled = false;
     }
 
     public void PlayImpactVFXFromBullet(GameObject bullet)

@@ -61,6 +61,6 @@ Material:
     m_Colors:
     - _DissolveSpeed: {r: -1, g: 0, b: 0, a: 0}
     - _MainTextSpeed: {r: -1, g: 0, b: 0, a: 0}
-    - _PrimaryColor: {r: 0, g: 0.0022658526, b: 0.21638605, a: 0}
-    - _SecondaryColor: {r: 0, g: 0, b: 0.013207555, a: 0}
+    - _PrimaryColor: {r: 0.3245282, g: 0.003398201, b: 0, a: 0}
+    - _SecondaryColor: {r: 0.022641419, g: 0.00023708292, b: 0, a: 0}
   m_BuildTextureStacks: []

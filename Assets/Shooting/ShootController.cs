@@ -52,8 +52,8 @@ public class ShootController : MonoBehaviour
     public float targetRedirectionY = 0.0f; // Forces the target Y to a specific value (e.g., ground level)
 
     private Camera cam;
-    private bool isAimingPushShot;
-    private bool isAimingPullShot;
+    public bool isAimingPushShot;
+    public bool isAimingPullShot;
     public Projectile currentTargetProjectile; // The projectile currently being aimed at at for redirection (exposed for debugging)
     private Vector3 cachedRedirectionVelocity; // Stores the calculated velocity for the redirected projectile
     private Vector3 cachedPushShot; // Stores the calculated target point for the redirected arc
@@ -137,7 +137,7 @@ public class ShootController : MonoBehaviour
 
                 // Initialize charge duration to min when RMB is first pressed
                 currentRButtonChargeDuration = minChargeTime;
-
+                VisualsManager.SetAimingColors(VisualsManager.Mat_PushGlow, VisualsManager.Col_Push);
             }
 
 
@@ -148,13 +148,14 @@ public class ShootController : MonoBehaviour
         // While aiming for redirection (RMB Held)
         if (Input.GetMouseButton(1) && isAimingPushShot)
         {
+            
             CheckForBulletInterruption();
             PController.RotatePlayerOverTime(currentTargetProjectile.gameObject, PController.rotationSpeed);
             RotateFist(currentTargetProjectile.gameObject, 360f);
 
             if (canShoot)
             {
-                VisualsManager.ShowRedirectionRangeCircles(currentTargetProjectile, minRedirectionRange, maxRedirectionRange, targetRedirectionY);
+                VisualsManager.ShowRedirectionRangeCircles(currentTargetProjectile, minRedirectionRange, maxRedirectionRange, targetRedirectionY, ShotType.Push);
                 // Handle R button input for charging the redirection distance
                 if (Input.GetKeyDown(KeyCode.R))
                 {
@@ -181,7 +182,7 @@ public class ShootController : MonoBehaviour
                     if (currentTargetProjectile != null)
                     {
                         // If we just found a new projectile, show circles on it
-                        VisualsManager.ShowRedirectionRangeCircles(currentTargetProjectile, minRedirectionRange, maxRedirectionRange, targetRedirectionY);
+                        VisualsManager.ShowRedirectionRangeCircles(currentTargetProjectile, minRedirectionRange, maxRedirectionRange, targetRedirectionY, ShotType.Push);
                     }
                 } // This might happen if the projectile is destroyed by external means.
 
@@ -284,10 +285,10 @@ public class ShootController : MonoBehaviour
                 {
                 if (VisualsManager.playerToProjectileLineRenderer != null) VisualsManager.playerToProjectileLineRenderer.enabled = false;
 
-                VisualsManager.StartCoroutine(VisualsManager.ShotExplosionVFX(Delay));
+                VisualsManager.StartCoroutine(VisualsManager.PlayMuzzleFlash(Delay, VisualsManager.VFX_MuzzleFlashPushShot));
                 VisualsManager.ShakeCamera();
                 float holdRatio = Mathf.Clamp01(currentRButtonChargeDuration / maxChargeTime);
-                    float bulletSpeed = Mathf.Lerp(10, 40, holdRatio); // tweak values
+                    float bulletSpeed = Mathf.Lerp(30, 50, holdRatio); // tweak values
                     currentBullet = Instantiate(PushShotPrefab, gunPoint.position, Quaternion.identity);
                     BulletController bulletCtrl = currentBullet.GetComponent<BulletController>();
                     bulletCtrl.controller = this;
@@ -320,7 +321,7 @@ public class ShootController : MonoBehaviour
 
                 // Initialize charge duration to min when RMB is first pressed
                 currentRButtonChargeDuration = minChargeTime;
-
+                VisualsManager.SetAimingColors(VisualsManager.Mat_PullGlow, VisualsManager.Col_Pull);
             }
 
 
@@ -331,13 +332,14 @@ public class ShootController : MonoBehaviour
         // While aiming for PullShot (LMB Held)
         if (Input.GetMouseButton(0) && isAimingPullShot)
         {
+
             CheckForBulletInterruption();
             PController.RotatePlayerOverTime(currentTargetProjectile.gameObject, PController.rotationSpeed);
             RotateFist(currentTargetProjectile.gameObject, 360f);
 
             if (canShoot)
             {
-                VisualsManager.ShowRedirectionRangeCircles(currentTargetProjectile, minRedirectionRange, maxRedirectionRange, targetRedirectionY);
+                VisualsManager.ShowRedirectionRangeCircles(currentTargetProjectile, minRedirectionRange, maxRedirectionRange, targetRedirectionY, ShotType.Pull);
                 // Handle R button input for charging the redirection distance
                 if (Input.GetKeyDown(KeyCode.R))
                 {
@@ -363,7 +365,7 @@ public class ShootController : MonoBehaviour
                     if (currentTargetProjectile != null)
                     {
                         // If we just found a new projectile, show circles on it
-                        VisualsManager.ShowRedirectionRangeCircles(currentTargetProjectile, minRedirectionRange, maxRedirectionRange, targetRedirectionY);
+                        VisualsManager.ShowRedirectionRangeCircles(currentTargetProjectile, minRedirectionRange, maxRedirectionRange, targetRedirectionY, ShotType.Pull);
                     }
                 } // This might happen if the projectile is destroyed by external means.
 
@@ -468,10 +470,10 @@ public class ShootController : MonoBehaviour
             {
                 if (VisualsManager.playerToProjectileLineRenderer != null) VisualsManager.playerToProjectileLineRenderer.enabled = false;
 
-                VisualsManager.StartCoroutine(VisualsManager.ShotExplosionVFX(Delay));
+                VisualsManager.StartCoroutine(VisualsManager.PlayMuzzleFlash(Delay, VisualsManager.VFX_MuzzleFlashPullShot));
                 VisualsManager.ShakeCamera();
                 float holdRatio = Mathf.Clamp01(currentRButtonChargeDuration / maxChargeTime);
-                float bulletSpeed = Mathf.Lerp(10, 40, holdRatio); // tweak values
+                float bulletSpeed = Mathf.Lerp(30, 50, holdRatio); // tweak values
                 currentBullet = Instantiate(PullShotPrefab, gunPoint.position, Quaternion.identity);
                 BulletController bulletCtrl = currentBullet.GetComponent<BulletController>();
                 bulletCtrl.controller = this;

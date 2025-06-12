@@ -56,13 +56,15 @@ public class ShootVisualsManager : MonoBehaviour
     // public RangeCircleRenderer MaxRedirectionRangeCircle; 
 
     [Header("Visual Materials & Colors")]
-    public Material Mat_PushGlow;
-    public Material Mat_PullGlow;
-    public Material Mat_Invalid;
+    public Material Mat_LineRendererPushRight;
+    public Material Mat_LineRendererPushWrong;
+    public Material Mat_LandingCirclePush;
+    public Material Mat_LineRendererPullRight;
+    public Material Mat_LineRendererPullWrong;
+    public Material Mat_LandingCirclePull;
     public Color Col_Push;
     public Color Col_Pull;
-    public Color Col_Invalid;
-    // RangeCircleMaterial and RangeCircleColor are now managed by RangeCircleRenderer itself
+    public Material Mat_Debug;
 
     [Tooltip("Name of the child GameObject on the Projectile prefab containing the Min RangeCircleRenderer.")]
     public string minRedirectionCircleName = "MinRedirectionRangeCircleVisual"; // Name to find child by
@@ -194,7 +196,7 @@ public class ShootVisualsManager : MonoBehaviour
         else // No valid target or other invalid conditions
         {
             currentIsRedirectionValid = false;
-            SetAimingColors(Mat_Invalid, Col_Invalid);
+            SetAimingColors(false);
         }
 
         // Update colors for all visuals
@@ -301,13 +303,12 @@ public class ShootVisualsManager : MonoBehaviour
                 if (rotator != null)
                     rotator.SetPositionAndOrientation(currentShotData.EndPosition, currentShotData.LastHit.normal);
             }
-            SetAimingColors(Mat_Invalid, Col_Invalid);
+            SetAimingColors(false);
         }
         else
         {
             if (_interruptMarkerInstance != null && _interruptMarkerInstance.active) { _interruptMarkerInstance.SetActive(false); }
-            if (Controller.isAimingPullShot) SetAimingColors(Mat_PullGlow, Col_Pull);
-            if (Controller.isAimingPushShot) SetAimingColors(Mat_PushGlow, Col_Push);
+            SetAimingColors(true);
         }
         if(currentShotData.EndPosition != null)
         {
@@ -377,32 +378,54 @@ public class ShootVisualsManager : MonoBehaviour
     /// Sets the material and color of all aiming visuals based on redirection validity.
     /// </summary>
     /// <param name="isValid">True for correct (green) materials/colors, false for wrong (red).</param>
-    public void SetAimingColors(Material Mat, Color Col)
+    public void SetAimingColors(bool Valid)
     {
-        Debug.Log(Mat + " " + Col);
-        if (Mat != null)
+        var ValidMaterial = Mat_Debug;
+        var InvalidMaterial = Mat_Debug;
+
+        if (Controller.isAimingPullShot)
         {
-
-            if (redirectionLineRenderer != null) redirectionLineRenderer.material = Mat;
-
-
-        }
-        if (Col != null)
-        {
+            ValidMaterial = Mat_LineRendererPullRight;
+            InvalidMaterial = Mat_LineRendererPullWrong;
             if (_ghostInstance != null)
             {
-                var sr = _ghostInstance.GetComponent<SpriteRenderer>();
-                if (sr != null) sr.color = Col;
+                var MeshRenderer = _ghostInstance.GetComponent<MeshRenderer>();
+                MeshRenderer.material = Mat_LandingCirclePull;
             }
-
             if (_interruptMarkerInstance != null)
             {
                 var rotator = _interruptMarkerInstance.GetComponent<RotateOnWall>();
                 if (rotator != null && rotator.Sprite != null)
-                    rotator.Sprite.color = Col;
+                    rotator.Sprite.color = Col_Pull;
             }
         }
-    }
+        if(Controller.isAimingPushShot) 
+        {
+            ValidMaterial = Mat_LineRendererPushRight;
+            InvalidMaterial = Mat_LineRendererPushWrong;
+            if (_ghostInstance != null)
+            {
+                var MeshRenderer = _ghostInstance.GetComponent<MeshRenderer>();
+                MeshRenderer.material = Mat_LandingCirclePush;
+            }
+            if (_interruptMarkerInstance != null)
+            {
+                var rotator = _interruptMarkerInstance.GetComponent<RotateOnWall>();
+                if (rotator != null && rotator.Sprite != null)
+                    rotator.Sprite.color = Col_Push;
+            }
+        }
+
+        if (redirectionLineRenderer != null)
+        {
+            if(Valid) redirectionLineRenderer.material = ValidMaterial;
+            else redirectionLineRenderer.material = InvalidMaterial;
+        }
+        
+            
+
+           
+        }
 
     public IEnumerator PlayMuzzleFlash(float delay, VisualEffect MuzzleFlash)
     {

@@ -137,7 +137,7 @@ public class ShootController : MonoBehaviour
 
                 // Initialize charge duration to min when RMB is first pressed
                 currentRButtonChargeDuration = minChargeTime;
-                VisualsManager.SetAimingColors(VisualsManager.Mat_PushGlow, VisualsManager.Col_Push);
+                VisualsManager.SetAimingColors(true);
             }
 
 
@@ -310,7 +310,7 @@ public class ShootController : MonoBehaviour
         }
 
         // Start aiming for PullShot (LMB Down)
-        if (Input.GetMouseButtonDown(0)) // Right Mouse Button
+        if (Input.GetMouseButtonDown(0)) // Left Mouse Button
         {
             // Find the closest active projectile in the air immediately
             currentTargetProjectile = FindClosestActiveProjectile();
@@ -319,9 +319,9 @@ public class ShootController : MonoBehaviour
                 isAimingPullShot = true;
                 GameTimeManager.Instance.FreezeTime(); // Freeze time by pausing rigidbodies
 
-                // Initialize charge duration to min when RMB is first pressed
+                // Initialize charge duration to min when LMB is first pressed
                 currentRButtonChargeDuration = minChargeTime;
-                VisualsManager.SetAimingColors(VisualsManager.Mat_PullGlow, VisualsManager.Col_Pull);
+                VisualsManager.SetAimingColors(true) ;
             }
 
 

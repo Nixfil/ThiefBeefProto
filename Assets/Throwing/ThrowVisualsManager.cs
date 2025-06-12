@@ -233,6 +233,7 @@ public class ThrowVisualsManager : MonoBehaviour
         Material currentMaterial = isValid ? CorrectThrowMaterial : WrongThrowMaterial;
         Color currentColor = isValid ? CorrectThrowColor : WrongThrowColor;
 
+        lineRenderer.material = currentMaterial;
 
         if (_ghostInstance != null)
         {
